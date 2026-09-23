@@ -1,11 +1,10 @@
 using System.ClientModel;
 using System.Text;
-using Azure;
-using Azure.AI.OpenAI;
 using Bokcirkeln.Api.Data;
 using Bokcirkeln.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using OpenAI;
 using OpenAI.Chat;
 
 namespace Bokcirkeln.Api.Services;
@@ -38,7 +37,8 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
     private const int MaxHistoryMessages = 30;
 
     private readonly AppDbContext _db = db;
-    private readonly ChatClient _chat = CreateChatClient(options.Value);
+    private readonly ChatServiceOptions _options = options.Value;
+    private ChatClient? _chat;
 
     /// <summary>
     /// Skickar ett användarmeddelande i ett samtal och returnerar modellens svar.
@@ -55,6 +55,7 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
     /// <param name="cancellationToken">CT</param>
     /// <returns>Modellens svarstext.</returns>
     /// <exception cref="KeyNotFoundException">Kastas när samtalet inte finns.</exception>
+    /// <exception cref="InvalidOperationException">Kastas när Azure OpenAI inte är konfigurerat.</exception>
     public async Task<string> SendMessageAsync(Guid conversationId, string content, CancellationToken cancellationToken = default)
     {
         var conversation = await _db.Conversations
@@ -73,7 +74,7 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
         await _db.SaveChangesAsync(cancellationToken);
 
         var prompt = BuildPrompt(conversation);
-        ClientResult<ChatCompletion> result = await _chat.CompleteChatAsync(prompt, cancellationToken: cancellationToken);
+        ClientResult<ChatCompletion> result = await GetChatClient().CompleteChatAsync(prompt, cancellationToken: cancellationToken);
         var reply = result.Value.Content.Count > 0 
             ? result.Value.Content[0].Text 
             : string.Empty;
@@ -88,6 +89,9 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
 
         return reply;
     }
+
+    /// <summary>Skapar och cachar chattklienten vid första AI-anropet.</summary>
+    private ChatClient GetChatClient() => _chat ??= CreateChatClient(_options);
 
     /// <summary>
     /// Skapar chattklienten mot Azure OpenAI utifrån inställningarna.
@@ -106,7 +110,9 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
                 "och ApiKey via User Secrets: dotnet user-secrets set \"AzureOpenAI:ApiKey\" \"din-nyckel\".");
         }
 
-        var client = new AzureOpenAIClient(new Uri(serviceOptions.Endpoint), new AzureKeyCredential(serviceOptions.ApiKey));
+        var client = new OpenAIClient(
+            new ApiKeyCredential(serviceOptions.ApiKey),
+            new OpenAIClientOptions { Endpoint = new Uri(serviceOptions.Endpoint) });
         return client.GetChatClient(serviceOptions.DeploymentName);
     }
 
