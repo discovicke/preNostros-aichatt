@@ -33,10 +33,11 @@ public static class ConversationEndpoints
         return TypedResults.Created($"/api/conversations/{conversation.Id}", Map(conversation));
     }
 
-    /// <summary>Hämtar alla samtal, nyaste först.</summary>
-    private static async Task<Ok<List<ConversationResponse>>> List(AppDbContext db, CancellationToken ct)
+    /// <summary>Hämtar alla samtal, nyaste först. Filtrera med ?bookId=.</summary>
+    private static async Task<Ok<List<ConversationResponse>>> List(AppDbContext db, Guid? bookId, CancellationToken ct)
     {
         var conversations = await db.Conversations
+            .Where(c => bookId == null || c.BookId == bookId)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync(ct);
         return TypedResults.Ok(conversations.Select(Map).ToList());

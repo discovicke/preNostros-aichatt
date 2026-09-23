@@ -17,6 +17,7 @@ public static class BookEndpoints
         group.MapPost("/", Create).AddEndpointFilter<ValidationFilter<CreateBookRequest>>();
         group.MapGet("/", List);
         group.MapGet("/{id:guid}", GetById);
+        group.MapPut("/{id:guid}", Update).AddEndpointFilter<ValidationFilter<UpdateBookRequest>>();
         group.MapGet("/{id:guid}/notes", ListNotes);
         group.MapPost("/{id:guid}/notes", CreateNote).AddEndpointFilter<ValidationFilter<CreateNoteRequest>>();
 
@@ -46,6 +47,19 @@ public static class BookEndpoints
         return book is null 
             ? TypedResults.NotFound() 
             : TypedResults.Ok(Map(book));
+    }
+
+    /// <summary>Uppdaterar titel och författare på en bok.</summary>
+    private static async Task<Results<Ok<BookResponse>, NotFound>> Update(Guid id, UpdateBookRequest request, AppDbContext db, CancellationToken ct)
+    {
+        Book? book = await db.Books.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (book is null)
+            return TypedResults.NotFound();
+
+        book.Title = request.Title;
+        book.Author = request.Author;
+        await db.SaveChangesAsync(ct);
+        return TypedResults.Ok(Map(book));
     }
 
     /// <summary>Hämtar alla anteckningar för en bok.</summary>

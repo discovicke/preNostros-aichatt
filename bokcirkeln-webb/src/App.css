@@ -131,3 +131,123 @@
   opacity: 0.4;
   cursor: default;
 }
+
+.panels {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  border-bottom: 1px solid #21262d;
+  flex-wrap: wrap;
+}
+
+.panel {
+  flex: 1 1 240px;
+  min-width: 0;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.panel h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #8b949e;
+  font-weight: normal;
+}
+
+.plain-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.plain-list li.selected .link-button {
+  color: #3fb950;
+}
+
+.link-button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.mini-button {
+  font: inherit;
+  font-size: 12px;
+  color: #8b949e;
+  background: none;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+.mini-button:hover {
+  color: #c9d1d9;
+  border-color: #8b949e;
+}
+
+.dim {
+  color: #484f58;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+}
+
+.panel input,
+.panel select {
+  font: inherit;
+  color: inherit;
+  background: #010409;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 4px 8px;
+  outline: none;
+}
+
+.panel input:focus,
+.panel select:focus {
+  border-color: #3fb950;
+}
+
+.panel button[type='submit'],
+.stack > button {
+  font: inherit;
+  color: #0d1117;
+  background: #3fb950;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 14px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.panel button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
