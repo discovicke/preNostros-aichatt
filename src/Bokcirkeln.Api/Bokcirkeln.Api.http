@@ -1,6 +1,55 @@
-@Bokcirkeln.Api_HostAddress = http://localhost:5037
+@host = http://localhost:5037
+@BOOK_ID = a8dc8722-9aec-4985-bff5-146982df9549
+@CONV_ID = 92e5d5db-cc53-4bf4-8717-6c5c2d572b00
 
-GET {{Bokcirkeln.Api_HostAddress}}/weatherforecast/
+### Skapa bok
+POST {{host}}/api/books
+Content-Type: application/json
+
+{
+  "title": "Mörkret",
+  "author": "Jo Nesbö"
+}
+
+### Lista böcker
+GET {{host}}/api/books
 Accept: application/json
 
-###
+### Skapa samtal
+POST {{host}}/api/conversations
+Content-Type: application/json
+
+{
+  "title": "Diskussion kap 1-3",
+  "bookId": "a8dc8722-9aec-4985-bff5-146982df9549"
+}
+
+### Lista samtal
+GET {{host}}/api/conversations
+Accept: application/json
+
+### Skicka meddelande till AI
+POST {{host}}/api/conversations/{{CONV_ID}}/messages
+Content-Type: application/json
+
+{
+  "content": "Vad tycker du om inledningen?"
+}
+
+### Hämta samtal med historik
+GET {{host}}/api/conversations/{{CONV_ID}}
+Accept: application/json
+
+### Spara anteckning om boken
+POST {{host}}/api/books/{{BOOK_ID}}/notes
+Content-Type: application/json
+
+{
+  "kind": "Betyg",
+  "content": "Stark inledning!",
+  "rating": 5
+}
+
+### Lista anteckningar för boken
+GET {{host}}/api/books/{{BOOK_ID}}/notes
+Accept: application/json
