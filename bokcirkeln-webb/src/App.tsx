@@ -1,122 +1,101 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useEffect, useRef, useState } from 'react'
+import type { FormEvent } from 'react'
+import { createConversation, sendMessage } from './api/bokcirkelnApi'
+import type { ChatMessage as ChatMessageType } from './api/types'
+import { ChatMessage } from './components/ChatMessage'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<ChatMessageType[]>([])
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Eget samtal vid start. Ref-guard behövs: StrictMode kör effekten 2 ggr i dev.
+  const created = useRef(false)
+  useEffect(() => {
+    if (created.current) 
+      return
+    created.current = true
+    void startNewConversation()
+  }, [])
+
+  // Håll senaste raden synlig.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, sending])
+
+  async function startNewConversation() {
+    setError(null)
+    setMessages([])
+    setConversationId(null)
+    try {
+      const conv = await createConversation('Nytt samtal')
+      setConversationId(conv.id)
+    } catch {
+      setError('Kunde inte nå API:t - körs backend på http://localhost:5037?')
+    }
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    const text = input.trim()
+    if (!text || !conversationId || sending) 
+      return
+    setInput('')
+    setError(null)
+    setSending(true)
+    // Visa användarens rad direkt, svaret renderas när det återkommit från servern
+    setMessages((m) => [...m, localMessage('user', text)])
+    try {
+      const answer = await sendMessage(conversationId, text)
+      setMessages((m) => [...m, localMessage('assistant', answer.reply)])
+    } catch {
+      setError('Något gick fel — försök igen.')
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+    <div className="terminal">
+      <header className="terminal-header">
+        <span className="prompt">bokcirkeln:~$</span>
+        <span className="terminal-title">bokcirkel-chatt</span>
+        <button type="button" className="terminal-button" onClick={() => void startNewConversation()} disabled={sending}>
+          /new
         </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
+      <main className="terminal-body">
+        {messages.map((m) => (
+          <ChatMessage key={m.id} message={m} />
+        ))}
+        {sending && <div className="thinking">bokcirkeln skriver…</div>}
+        {error && <div className="terminal-error">! {error}</div>}
+        <div ref={bottomRef} />
+      </main>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <form className="terminal-input" onSubmit={(e) => void handleSubmit(e)}>
+        <span className="prompt">›</span>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Skriv till bokcirkeln…"
+          disabled={sending || !conversationId}
+          autoFocus
+        />
+        <button type="submit" disabled={sending || !input.trim()}>
+          skicka
+        </button>
+      </form>
+    </div>
   )
 }
 
-export default App
+/** Tillfällig rad innan servern svarat (servern sparar sin egen kopia). */
+function localMessage(role: string, content: string): ChatMessageType {
+  return { id: crypto.randomUUID(), role, content, createdAt: new Date().toISOString() }
+}
