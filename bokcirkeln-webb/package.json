@@ -1,5 +1,5 @@
 {
-  "name": "bokcirkeln-webb",
+  "name": "prenostros-webb",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

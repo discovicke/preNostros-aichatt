@@ -17,7 +17,7 @@ builder.Services.Configure<ChatServiceOptions>(builder.Configuration.GetSection(
 builder.Services.AddScoped<ChatService>();
 
 builder.Services.AddCors(options => options.AddPolicy("React", policy => policy
-    .WithOrigins("http://localhost:5174")
+    .WithOrigins("http://localhost:5173")
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
