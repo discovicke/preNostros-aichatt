@@ -1,11 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
-import { createConversation, getConversation, sendMessage } from './api/bokcirkelnApi'
+import type { FormEvent, KeyboardEvent } from 'react'
+import { createConversation, getBook, getConversation, sendMessage } from './api/bokcirkelnApi'
 import type { ChatMessage as ChatMessageType } from './api/types'
-import { BookPanel } from './components/BookPanel'
+import { BookCreateModal } from './features/books/BookCreateModal'
+import { BookModal } from './features/books/BookModal'
+import { BookOverview } from './features/books/BookOverview'
 import { ChatMessage } from './components/ChatMessage'
-import { ConversationPanel } from './components/ConversationPanel'
-import { NotePanel } from './components/NotePanel'
+import { visibleCommands } from './components/CommandMenu'
+import type { CommandName, Level } from './components/CommandMenu'
+import { CommandMenu } from './components/CommandMenu'
+import { ConversationCreateModal } from './features/conversations/ConversationCreateModal'
+import { ConversationModal } from './features/conversations/ConversationModal'
+import { DeleteModal } from './components/DeleteModal'
+import { HelpModal } from './components/HelpModal'
+import { Modal } from './components/Modal'
+import { NoteCreateModal } from './features/notes/NoteCreateModal'
+import { NoteDeleteModal } from './features/notes/NoteDeleteModal'
+import { NoteListModal } from './features/notes/NoteListModal'
+import { RatingModal } from './features/books/RatingModal'
+import { RenameModal } from './components/RenameModal'
+import { Sidebar } from './components/Sidebar'
 import './App.css'
 
 /** Terminal-chatt: böcker, samtal, betyg + chatt mot bokcirkel-API:t. */
@@ -13,16 +27,137 @@ export default function App() {
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [convRefresh, setConvRefresh] = useState(0)
+  const [bookRefresh, setBookRefresh] = useState(0)
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [command, setCommand] = useState<CommandName | null>(null)
+  const [overlay, setOverlay] = useState<null | 'book-create' | 'conversation-create' | 'note-create'>(null)
+  const [menuIndex, setMenuIndex] = useState(0)
+  const [statusBook, setStatusBook] = useState<string | null>(null)
+  const [statusConv, setStatusConv] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Håll senaste raden synlig.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, sending])
+
+  // Statusraden: hämta titlar för valda id:n.
+  useEffect(() => {
+    async function load() {
+      if (!selectedBookId) {
+        setStatusBook(null)
+        return
+      }
+      try {
+        setStatusBook((await getBook(selectedBookId)).title)
+      } catch {
+        setStatusBook(null)
+      }
+    }
+    void load()
+  }, [selectedBookId, bookRefresh])
+
+  useEffect(() => {
+    async function load() {
+      if (!conversationId) {
+        setStatusConv(null)
+        return
+      }
+      try {
+        setStatusConv((await getConversation(conversationId)).title)
+      } catch {
+        setStatusConv(null)
+      }
+    }
+    void load()
+  }, [conversationId, convRefresh])
+
+  // Aktuell nivå styr vilka kommandon som syns.
+  const level: Level = conversationId ? 'conversation' : selectedBookId ? 'book' : 'root'
+
+  // Menykommandon: filtrera på ordet efter "/".
+  const showMenu = input.startsWith('/') && !sending
+  const matches = visibleCommands(level).filter((c) => c.name.startsWith(input.slice(1).split(' ')[0]))
+
+  /** Stänger modal och ger fokus tillbaka till chatten. */
+  function closeCommand() {
+    setCommand(null)
+    inputRef.current?.focus()
+  }
+
+  /** Öppnar modal för valt kommando. */
+  function openCommand(name: CommandName) {
+    setInput('')
+    setError(null)
+    setMenuIndex(0)
+    setCommand(name)
+  }
+
+  /** Gå in i bok: rensa samtal + chatt. */
+  function selectBook(id: string | null) {
+    setSelectedBookId(id)
+    setConversationId(null)
+    setMessages([])
+  }
+
+  /** Ett steg upp i trädet. Tyst i rot. */
+  function stepUp() {
+    setInput('')
+    setError(null)
+    if (conversationId) {
+      setConversationId(null)
+      setMessages([])
+    } else if (selectedBookId) {
+      setSelectedBookId(null)
+    }
+  }
+
+  /** Lämna allt, tillbaka till rot. Tyst i rot. */
+  function leaveAll() {
+    setInput('')
+    setError(null)
+    setSelectedBookId(null)
+    setConversationId(null)
+    setMessages([])
+  }
+
+  /** Enter på /-text: tillbaka/lämna agerar direkt, övrigt öppnar modal. */
+  function runSlashCommand(raw: string) {
+    const word = raw.split(' ')[0]
+    if (word === 'tillbaka') {
+      stepUp()
+      return
+    }
+    if (word === 'lämna') {
+      leaveAll()
+      return
+    }
+    const options = visibleCommands(level).filter((c) => c.name.startsWith(word))
+    const pick = options[Math.min(menuIndex, Math.max(options.length - 1, 0))]
+    if (!pick) {
+      setError('Okänt kommando — skriv /help för alla kommandon')
+      return
+    }
+    openCommand(pick.name)
+  }
+
+  /** Pilar navigerar menyn, Esc tömmer input. Enter skickas av formuläret. */
+  function handleInputKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (!showMenu || matches.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setMenuIndex((i) => (i + 1) % matches.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setMenuIndex((i) => (i - 1 + matches.length) % matches.length)
+    } else if (e.key === 'Escape') {
+      setInput('')
+    }
+  }
 
   /** Skapar alltid ett helt nytt samtal (kopplat till vald bok). */
   async function createFreshConversation(): Promise<string> {
@@ -60,6 +195,10 @@ export default function App() {
     e.preventDefault()
     const text = input.trim()
     if (!text || sending) return
+    if (text.startsWith('/')) {
+      runSlashCommand(text.slice(1))
+      return
+    }
     setInput('')
     setError(null)
     setSending(true)
@@ -82,6 +221,9 @@ export default function App() {
       <header className="terminal-header">
         <span className="prompt">bokcirkeln:~$</span>
         <span className="terminal-title">bokcirkel-chatt</span>
+        <span className="dim">
+          bok: {statusBook ?? '–'} · samtal: {statusConv ?? '–'}
+        </span>
         <button
           type="button"
           className="terminal-button"
@@ -92,18 +234,18 @@ export default function App() {
         </button>
       </header>
 
-      <div className="panels">
-        <BookPanel selectedId={selectedBookId} onSelect={setSelectedBookId} />
-        <ConversationPanel
-          bookId={selectedBookId}
-          activeId={conversationId}
-          refreshKey={convRefresh}
-          onSelect={(id) => void selectConversation(id)}
+      <div className="content">
+        <Sidebar
+          selectedBookId={selectedBookId}
+          activeConversationId={conversationId}
+          bookRefresh={bookRefresh}
+          convRefresh={convRefresh}
+          onSelectBook={selectBook}
+          onSelectConversation={(id) => void selectConversation(id)}
         />
-        {selectedBookId && <NotePanel bookId={selectedBookId} />}
-      </div>
-
-      <main className="terminal-body">
+        <div className="main-col">
+          <main className="terminal-body">
+        {selectedBookId && !conversationId && <BookOverview bookId={selectedBookId} />}
         {messages.map((m) => (
           <ChatMessage key={m.id} message={m} />
         ))}
@@ -112,11 +254,24 @@ export default function App() {
         <div ref={bottomRef} />
       </main>
 
-      <form className="terminal-input" onSubmit={(e) => void handleSubmit(e)}>
-        <span className="prompt">›</span>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+      <div className="input-zone">
+        {showMenu && (
+          <CommandMenu
+            commands={matches}
+            selectedIndex={Math.min(menuIndex, Math.max(matches.length - 1, 0))}
+            onPick={openCommand}
+          />
+        )}
+        <form className="terminal-input" onSubmit={(e) => void handleSubmit(e)}>
+          <span className="prompt">{statusBook ? `bokcirkeln(${statusBook}${statusConv ? `/${statusConv}` : ''}) ›` : 'bokcirkeln ›'}</span>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value)
+              setMenuIndex(0)
+            }}
+            onKeyDown={handleInputKey}
           placeholder="Skriv till bokcirkeln…"
           disabled={sending}
           autoFocus
@@ -124,7 +279,157 @@ export default function App() {
         <button type="submit" disabled={sending || !input.trim()}>
           skicka
         </button>
-      </form>
+        </form>
+        </div>
+        </div>
+      </div>
+      {command === 'bok' && !overlay && (
+        <Modal title="/bok" onClose={closeCommand} showClose={false}>
+          <BookModal
+            selectedId={selectedBookId}
+            onSelect={selectBook}
+            onCreate={() => setOverlay('book-create')}
+            onClose={closeCommand}
+          />
+        </Modal>
+      )}
+      {command === 'samtal' && !overlay && (
+        <Modal title="/samtal" onClose={closeCommand}>
+          <ConversationModal
+            bookId={selectedBookId}
+            activeId={conversationId}
+            onSelect={(id) => void selectConversation(id)}
+            onCreate={() => setOverlay('conversation-create')}
+            onClose={closeCommand}
+          />
+        </Modal>
+      )}
+      {command === 'betyg' && (
+        <Modal title="/betyg" onClose={closeCommand}>
+          {selectedBookId ? (
+            <RatingModal bookId={selectedBookId} onSaved={closeCommand} />
+          ) : (
+            <div className="dim">Välj en bok först med /bok.</div>
+          )}
+        </Modal>
+      )}
+      {command === 'anteckning' && !overlay && (
+        <Modal title="/anteckning" onClose={closeCommand}>
+          {selectedBookId ? (
+            <NoteListModal bookId={selectedBookId} onCreate={() => setOverlay('note-create')} />
+          ) : (
+            <div className="dim">Välj en bok först med /bok.</div>
+          )}
+        </Modal>
+      )}
+      {overlay === 'book-create' && (
+        <Modal title="/bok-ny" onClose={() => setOverlay(null)}>
+          <BookCreateModal
+            onCreated={(id) => {
+              setSelectedBookId(id)
+              setBookRefresh((n) => n + 1)
+              setOverlay(null)
+            }}
+          />
+        </Modal>
+      )}
+      {overlay === 'conversation-create' && (
+        <Modal title="/samtal-ny" onClose={() => setOverlay(null)}>
+          <ConversationCreateModal
+            bookId={selectedBookId}
+            onCreated={(id) => {
+              setConversationId(id)
+              setMessages([])
+              setConvRefresh((n) => n + 1)
+              setOverlay(null)
+            }}
+          />
+        </Modal>
+      )}
+      {overlay === 'note-create' && selectedBookId && (
+        <Modal title="/anteckning-ny" onClose={() => setOverlay(null)}>
+          <NoteCreateModal bookId={selectedBookId} onCreated={() => setOverlay(null)} />
+        </Modal>
+      )}
+      {command === 'döp-om' && (
+        <Modal title="/döp-om" onClose={closeCommand}>
+          {conversationId ? (
+            <RenameModal
+              kind="conversation"
+              id={conversationId}
+              onSaved={() => {
+                setConvRefresh((n) => n + 1)
+                closeCommand()
+              }}
+            />
+          ) : selectedBookId ? (
+            <RenameModal
+              kind="book"
+              id={selectedBookId}
+              onSaved={(title) => {
+                setStatusBook(title)
+                setBookRefresh((n) => n + 1)
+                closeCommand()
+              }}
+            />
+          ) : (
+            <div className="dim">Välj en bok eller ett samtal först.</div>
+          )}
+        </Modal>
+      )}
+      {command === 'radera' && (
+        <Modal title="/radera" onClose={closeCommand}>
+          {conversationId ? (
+            <DeleteModal
+              kind="conversation"
+              id={conversationId}
+              onDeleted={() => {
+                setConversationId(null)
+                setMessages([])
+                setConvRefresh((n) => n + 1)
+                closeCommand()
+              }}
+            />
+          ) : selectedBookId ? (
+            <DeleteModal
+              kind="book"
+              id={selectedBookId}
+              onDeleted={() => {
+                setSelectedBookId(null)
+                setConversationId(null)
+                setMessages([])
+                setBookRefresh((n) => n + 1)
+                closeCommand()
+              }}
+            />
+          ) : (
+            <div className="dim">Välj en bok eller ett samtal först.</div>
+          )}
+        </Modal>
+      )}
+      {command === 'help' && (
+        <Modal title="/help" onClose={closeCommand}>
+          <HelpModal />
+        </Modal>
+      )}
+      {command === 'anteckningar' && !overlay && (
+        <Modal title="/anteckningar" onClose={closeCommand}>
+          {selectedBookId ? (
+            <NoteListModal bookId={selectedBookId} onCreate={() => setOverlay('note-create')} />
+          ) : (
+            <div className="dim">Välj en bok först med /bok.</div>
+          )}
+        </Modal>
+      )}
+      {command === 'anteckning-radera' && (
+        <Modal title="/anteckning-radera" onClose={closeCommand}>
+          {selectedBookId ? (
+            <NoteDeleteModal bookId={selectedBookId} onDeleted={closeCommand} />
+          ) : (
+            <div className="dim">Välj en bok först med /bok.</div>
+          )}
+        </Modal>
+      )}
     </div>
   )
 }

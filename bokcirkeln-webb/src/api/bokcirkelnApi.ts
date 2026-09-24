@@ -60,20 +60,86 @@ export function updateBook(id: string, title: string, author: string): Promise<B
   })
 }
 
+/** Hämtar en enskild bok. */
+export function getBook(id: string): Promise<Book> {
+  return apiFetch<Book>(`/api/books/${id}`)
+}
+
+/** Sätter eller rensar bokens betyg (null = rensa). */
+export function updateBookRating(bookId: string, rating: number | null, motivation: string | null): Promise<Book> {
+  return apiFetch<Book>(`/api/books/${bookId}/rating`, {
+    method: 'PUT',
+    body: JSON.stringify({ rating, motivation }),
+  })
+}
+
+const summaryCache = new Map<string, string>()
+
+/** Hämtar AI-sammanfattning (cachas per bok i sessionen). */
+export async function getBookSummary(bookId: string): Promise<string> {
+  const cached = summaryCache.get(bookId)
+  if (cached !== undefined) return cached
+  const res = await apiFetch<{ summary: string }>(`/api/books/${bookId}/summary`)
+  summaryCache.set(bookId, res.summary)
+  return res.summary
+}
+
 /** Hämtar alla anteckningar för en bok. */
 export function listNotes(bookId: string): Promise<Note[]> {
   return apiFetch<Note[]>(`/api/books/${bookId}/notes`)
 }
 
-/** Sparar en anteckning (rating krävs för Betyg). */
+/** Sparar en anteckning (rating krävs för Betyg, text valfri för Betyg). */
 export function createNote(
   bookId: string,
   kind: NoteKind,
-  content: string,
+  content: string | null,
   rating: number | null,
 ): Promise<Note> {
   return apiFetch<Note>(`/api/books/${bookId}/notes`, {
     method: 'POST',
     body: JSON.stringify({ kind, content, rating }),
   })
+}
+
+/** Anrop utan svarskropp (204). Kastar Error vid fel. */
+async function apiVoid(path: string, init?: RequestInit): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, init)
+  if (!res.ok) throw new Error(`API ${res.status} på ${path}`)
+}
+
+/** Raderar en bok med samtal och anteckningar. */
+export function deleteBook(id: string): Promise<void> {
+  return apiVoid(`/api/books/${id}`, { method: 'DELETE' })
+}
+
+/** Döper om ett samtal. */
+export function updateConversation(id: string, title: string): Promise<Conversation> {
+  return apiFetch<Conversation>(`/api/conversations/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ title }),
+  })
+}
+
+/** Raderar ett samtal med meddelanden. */
+export function deleteConversation(id: string): Promise<void> {
+  return apiVoid(`/api/conversations/${id}`, { method: 'DELETE' })
+}
+
+/** Uppdaterar innehåll och/eller betyg på en anteckning. */
+export function updateNote(
+  bookId: string,
+  noteId: string,
+  content: string | null,
+  rating: number | null,
+): Promise<Note> {
+  return apiFetch<Note>(`/api/books/${bookId}/notes/${noteId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ content, rating }),
+  })
+}
+
+/** Raderar en anteckning. */
+export function deleteNote(bookId: string, noteId: string): Promise<void> {
+  return apiVoid(`/api/books/${bookId}/notes/${noteId}`, { method: 'DELETE' })
 }
