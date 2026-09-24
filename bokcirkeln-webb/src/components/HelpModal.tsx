@@ -11,13 +11,13 @@ const GROUPS: { level: Level; title: string }[] = [
 export function HelpModal() {
   return (
     <div>
-      {GROUPS.map((g) => (
-        <div key={g.level}>
-          <div className="dim">{g.title}</div>
-          {visibleCommands(g.level).map((c) => (
-            <div key={c.name} className="help-row">
-              <span className="cmd">/{c.name}</span>
-              <span className="dim">{c.description}</span>
+      {GROUPS.map((group) => (
+        <div key={group.level}>
+          <div className="dim">{group.title}</div>
+          {visibleCommands(group.level).map((cmd) => (
+            <div key={cmd.name} className="help-row">
+              <span className="cmd">/{cmd.name}</span>
+              <span className="dim">{cmd.description}</span>
             </div>
           ))}
         </div>

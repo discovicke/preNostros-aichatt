@@ -42,11 +42,11 @@ export function RatingModal({ bookId, onSaved }: { bookId: string; onSaved: () =
         <div className="row">
           <span>Betyg:</span>
           <select value={rating} onChange={(e) => setRating(e.target.value)} aria-label="Betyg">
-            {RATINGS.map((r) => (
-              <option key={r} value={r}>
-                {r === '–' 
+            {RATINGS.map((ratingOption) => (
+              <option key={ratingOption} value={ratingOption}>
+                {ratingOption === '–' 
                     ? '– inget betyg' 
-                    : `${r}/5`}
+                    : `${ratingOption}/5`}
               </option>
             ))}
           </select>

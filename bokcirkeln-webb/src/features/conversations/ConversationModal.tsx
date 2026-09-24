@@ -20,7 +20,7 @@ export function ConversationModal({
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [error, setError] = useState<string | null>(null)
-  const rows = [{ id: '__create__', label: '+ Skapa nytt samtal' }, ...conversations.map((c) => ({ id: c.id, label: c.title }))]
+  const rows = [{ id: '__create__', label: '+ Skapa nytt samtal' }, ...conversations.map((conversation) => ({ id: conversation.id, label: `○ ${conversation.title}` }))]
   const nav = useListNav(rows.length)
   const marked = rows[nav.index]
 
@@ -31,7 +31,7 @@ export function ConversationModal({
         // I rot (ingen bok) visas bara okopplade samtal.
         setConversations(bookId 
             ? all 
-            : all.filter((c) => !c.bookId))
+            : all.filter((conversation) => !conversation.bookId))
       } catch {
         setError('Kunde inte ladda samtal.')
       }
@@ -76,6 +76,7 @@ export function ConversationModal({
         options={rows}
         selectedIndex={nav.index}
         selectedId={activeId}
+        tone="conv"
         onHighlight={nav.highlight}
         onPick={(id) => {
           if (id === '__create__') 

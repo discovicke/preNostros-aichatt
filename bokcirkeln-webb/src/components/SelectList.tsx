@@ -15,12 +15,14 @@ export function SelectList({
   options,
   selectedIndex,
   selectedId,
+  tone,
   onHighlight,
   onPick,
 }: {
   options: SelectOption[]
   selectedIndex: number
   selectedId?: string | null
+  tone?: 'book' | 'conv'
   onHighlight: (index: number) => void
   onPick: (id: string) => void
 }) {
@@ -33,26 +35,28 @@ export function SelectList({
 
   return (
     <div className="select-list">
-      {options.map((o, i) => (
+      {options.map((option, index) => (
         <button
-          key={o.id}
-          ref={(el) => {
-            refs.current[i] = el
+          key={option.id}
+          ref={(element) => {
+            refs.current[index] = element
           }}
           type="button"
-          className={i === selectedIndex 
+          className={index === selectedIndex 
               ? 'command-item active' 
               : 'command-item'}
-          onMouseEnter={() => onHighlight(i)}
-          onClick={() => onPick(o.id)}
+          onMouseEnter={() => onHighlight(index)}
+          onClick={() => onPick(option.id)}
         >
-          <span>
-            {o.id === selectedId 
+          <span
+            className={tone === 'book' ? 'tone-book' : tone === 'conv' ? 'tone-conv' : undefined}
+          >
+            {option.id === selectedId 
                 ? '> ' 
                 : ''}
-            {o.label}
+            {option.label}
           </span>
-          {o.hint && <span className="dim">{o.hint}</span>}
+          {option.hint && <span className="dim">{option.hint}</span>}
         </button>
       ))}
     </div>

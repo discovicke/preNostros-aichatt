@@ -38,7 +38,7 @@ export const COMMANDS: SlashCommand[] = [
 
 /** Kommandon tillgängliga på given nivå. */
 export function visibleCommands(level: Level): SlashCommand[] {
-  return COMMANDS.filter((c) => c.levels.includes(level))
+  return COMMANDS.filter((cmd) => cmd.levels.includes(level))
 }
 
 /** Förslagslista under input. Pilar/Enter styrs från App. */
@@ -54,23 +54,23 @@ export function CommandMenu({
   if (commands.length === 0) {
     return (
       <div className="command-menu">
-        <div className="command-hint">okänt kommando - skriv /help för alla kommandon</div>
+        <div className="command-hint">okänt kommando - skriv <span className="cmd">/help</span> för alla kommandon</div>
       </div>
     )
   }
   return (
     <div className="command-menu">
-      {commands.map((c, i) => (
+      {commands.map((command, index) => (
         <button
-          key={c.name}
+          key={command.name}
           type="button"
-          className={i === selectedIndex 
+          className={index === selectedIndex 
               ? 'command-item active' 
               : 'command-item'}
-          onClick={() => onPick(c.name)}
+          onClick={() => onPick(command.name)}
         >
-          <span className="cmd">/{c.name}</span>
-          <span className="dim">{c.description}</span>
+          <span className="cmd">/{command.name}</span>
+          <span className="dim">{command.description}</span>
         </button>
       ))}
     </div>
