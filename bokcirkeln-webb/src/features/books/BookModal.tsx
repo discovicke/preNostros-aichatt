@@ -19,7 +19,7 @@ export function BookModal({
   const [books, setBooks] = useState<Book[]>([])
   const [error, setError] = useState<string | null>(null)
   const nav = useListNav(books.length + 1)
-  const rows = [{ id: '__create__', label: '+ Skapa ny bok' }, ...books.map((b) => ({ id: b.id, label: b.title, hint: `av ${b.author}` }))]
+  const rows = [{ id: '__create__', label: '+ Skapa ny bok' }, ...books.map((book) => ({ id: book.id, label: `§ ${book.title}`, hint: `av ${book.author}` }))]
   const marked = rows[nav.index]
 
   useEffect(() => {
@@ -73,6 +73,7 @@ export function BookModal({
         options={rows}
         selectedIndex={nav.index}
         selectedId={selectedId}
+        tone="book"
         onHighlight={nav.highlight}
         onPick={(id) => {
           if (id === '__create__') 

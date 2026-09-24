@@ -27,13 +27,13 @@ export function NoteListModal({ bookId, onCreate }: { bookId: string; onCreate: 
         </button>
       )}
       <ul className="plain-list">
-        {notes.map((n) => (
-          <li key={n.id}>
-            - [{n.kind}
-            {n.kind === 'Betyg' && n.rating 
-                ? ` ${n.rating}/5` 
-                : ''}]{n.content 
-              ? ` ${n.content}` 
+        {notes.map((note) => (
+          <li key={note.id}>
+            - [{note.kind}
+            {note.kind === 'Betyg' && note.rating 
+                ? <span className="rating">{` ★${note.rating}/5`}</span> 
+                : ''}]{note.content 
+              ? ` ${note.content}` 
               : ''}
           </li>
         ))}

@@ -6,12 +6,12 @@ import { SelectList } from '../../components/SelectList'
 import { isTyping, useListNav } from '../../components/useListNav'
 
 /** Enradsbeskrivning av en anteckning. */
-function label(n: Note): string {
-  const head = n.kind === 'Betyg' && n.rating 
-      ? `${n.kind} ${n.rating}/5` 
-      : n.kind
-  return n.content 
-      ? `${head}: ${n.content}` 
+function label(note: Note): string {
+  const head = note.kind === 'Betyg' && note.rating 
+      ? `${note.kind} ${note.rating}/5` 
+      : note.kind
+  return note.content 
+      ? `${head}: ${note.content}` 
       : head
 }
 
@@ -54,7 +54,8 @@ export function NoteDeleteModal({
         nav.move(-1)
       } else if (e.key === 'Enter' && document.activeElement?.tagName.toLowerCase() !== 'button') {
         e.preventDefault()
-        if (marked) setPicked(marked)
+        if (marked) 
+          setPicked(marked)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -93,12 +94,12 @@ export function NoteDeleteModal({
     <div>
       {error && <div className="terminal-error">! {error}</div>}
       <SelectList
-        options={notes.map((n) => ({ id: n.id, label: label(n) }))}
+        options={notes.map((note) => ({ id: note.id, label: label(note) }))}
         selectedIndex={nav.index}
         selectedId={null}
         onHighlight={nav.highlight}
         onPick={(id) => {
-          const note = notes.find((n) => n.id === id)
+          const note = notes.find((note) => note.id === id)
           if (note) setPicked(note)
         }}
       />

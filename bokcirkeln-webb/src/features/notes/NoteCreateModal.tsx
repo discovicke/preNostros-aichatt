@@ -28,9 +28,9 @@ export function NoteCreateModal({ bookId, onCreated }: { bookId: string; onCreat
       {error && <div className="terminal-error">! {error}</div>}
       <form onSubmit={(e) => void handleCreate(e)} className="stack">
         <select value={kind} onChange={(e) => setKind(e.target.value as NoteKind)} aria-label="Typ">
-          {KINDS.map((k) => (
-            <option key={k} value={k}>
-              {k}
+          {KINDS.map((kind) => (
+            <option key={kind} value={kind}>
+              {kind}
             </option>
           ))}
         </select>

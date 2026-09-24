@@ -10,7 +10,8 @@ export function BookCreateModal({ onCreated }: { onCreated: (id: string) => void
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
-    if (!title.trim() || !author.trim()) return
+    if (!title.trim() || !author.trim()) 
+      return
     try {
       const book = await createBook(title.trim(), author.trim())
       onCreated(book.id)
