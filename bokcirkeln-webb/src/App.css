@@ -3,7 +3,9 @@
   --surface: #141414;
   --border: #262626;
   --text: #eeeeee;
-  --dim: #808080;
+  /* Mjuk brödtextgrå — nästan-vitt mot kolsvart "blommar" (halation) i långa sjok. */
+  --prose: #d2d2d2;
+  --dim: #a3a3a3;
   --blue: #5c9cf5;
   --green: #7fd88f;
   --orange: #f5a742;
@@ -22,8 +24,8 @@
   background: var(--bg);
   color: var(--text);
   font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace;
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 17px;
+  line-height: 1.65;
 }
 
 .terminal-header {
@@ -125,7 +127,10 @@
 }
 
 .line.theirs .text {
-  max-width: 85ch;
+  max-width: 70ch;
+  color: var(--prose);
+  /* Markdown styr sin egen luft via block-element — ärvd pre-wrap skulle
+     göra ledande \n i AI-svaret till en tomrad och misaligna mot linjen. */
   white-space: normal;
 }
 
@@ -135,7 +140,7 @@
 
 /* Markdown med terminaltema (Markdown.tsx). */
 .md-p {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   padding: 0;
 }
 
@@ -148,7 +153,6 @@
 
 .md-strong {
   color: #ffffff;
-  font-size: 16px;
 }
 
 .md-code {
@@ -157,15 +161,15 @@
   border: 1px solid var(--border);
   border-radius: 2px;
   padding: 1px 5px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .md-block {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 2px;
-  padding: 10px 12px;
-  margin: 0 0 10px;
+  padding: 12px 14px;
+  margin: 0 0 12px;
   overflow-x: auto;
   white-space: pre;
 }
@@ -178,11 +182,11 @@
 }
 
 .md-list {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   padding-left: 22px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .md-list li::marker {
@@ -190,27 +194,33 @@
 }
 
 .md-quote {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   padding-left: 12px;
-  border-left: 2px solid var(--dim);
-  color: var(--dim);
+  border-left: 2px solid var(--green);
+  color: var(--cyan);
+}
+
+/* AI:ns fråga till läsaren (??...??) — egen färg som bryter texten. */
+.md-question {
+  color: var(--cyan);
+  font-weight: 700;
 }
 
 h1.md-heading {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 h2.md-heading {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 h3.md-heading {
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .md-heading {
   color: var(--peach);
-  margin: 14px 0 8px;
+  margin: 16px 0 8px;
 }
 
 .md-heading:first-child {
@@ -613,4 +623,16 @@ h3.md-heading {
 
 .rating {
   color: var(--yellow);
+}
+
+/* Boksammanfattningen läses som brödtext — samma mjuka grå som AI-svar. */
+.summary {
+  color: var(--prose);
+}
+
+/* Aldrig under 16px på små skärmar — iOS autozoomar vid fokus under 16px. */
+@media (max-width: 600px) {
+  .terminal {
+    font-size: 16px;
+  }
 }

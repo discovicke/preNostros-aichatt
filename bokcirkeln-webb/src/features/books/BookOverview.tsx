@@ -60,7 +60,7 @@ export function BookOverview({
       <div className="term-box">
         <div className="box-title">$ översikt</div>
         {summary 
-            ? <Markdown content={summary} /> 
+            ? <div className="summary"><Markdown content={summary} /></div> 
             : <div className="dim">Sammanfattar…</div>}
         {counts && <div className="dim">{counts}</div>}
       </div>
