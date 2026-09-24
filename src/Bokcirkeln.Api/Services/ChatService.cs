@@ -90,6 +90,42 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
         return reply;
     }
 
+    /// <summary>Hämtar en kort AI-sammanfattning av vad boken handlar om.</summary>
+    /// <param name="bookId">Id för boken.</param>
+    /// <param name="cancellationToken">CT</param>
+    /// <returns>Sammanfattningstexten. Sparas på boken.</returns>
+    /// <exception cref="KeyNotFoundException">Kastas när boken inte finns.</exception>
+    public async Task<string> GetBookSummaryAsync(Guid bookId, CancellationToken cancellationToken = default)
+    {
+        var book = await _db.Books
+                           .Include(b => b.Notes)
+                           .FirstOrDefaultAsync(b => b.Id == bookId, cancellationToken)
+                       ?? throw new KeyNotFoundException($"Boken {bookId} hittades inte.");
+
+        var builder = new StringBuilder();
+        builder.AppendLine("Sammanfatta kort vad boken handlar om på svenska (5-8 meningar, utan stora spoilers).");
+        builder.AppendLine($"Bok: \"{book.Title}\" av {book.Author}.");
+        foreach (var note in book.Notes.OrderBy(n => n.CreatedAt).TakeLast(10))
+        {
+            builder.AppendLine(note.Kind == NoteKind.Betyg && note.Rating.HasValue
+                ? $"- Mitt betyg {note.Rating}/5: {note.Content}"
+                : $"- Min {note.Kind.ToString().ToLowerInvariant()}: {note.Content}");
+        }
+
+        List<ChatMessage> prompt =
+        [
+            new SystemChatMessage("Du är en hjälpsam bokkunnig assistent som svarar på svenska."),
+            new UserChatMessage(builder.ToString())
+        ];
+        ClientResult<ChatCompletion> result = await GetChatClient().CompleteChatAsync(prompt, cancellationToken: cancellationToken);
+        var summary = result.Value.Content.Count > 0 
+            ? result.Value.Content[0].Text 
+            : string.Empty;
+        book.Summary = summary;
+        await _db.SaveChangesAsync(cancellationToken);
+        return summary;
+    }
+
     /// <summary>Skapar och cachar chattklienten vid första AI-anropet.</summary>
     private ChatClient GetChatClient() => _chat ??= CreateChatClient(_options);
 

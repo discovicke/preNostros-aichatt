@@ -53,3 +53,42 @@ Content-Type: application/json
 ### Lista anteckningar för boken
 GET {{host}}/api/books/{{BOOK_ID}}/notes
 Accept: application/json
+
+### Döp om samtal
+PUT {{host}}/api/conversations/{{CONV_ID}}
+Content-Type: application/json
+
+{
+  "title": "Diskussion kap 1-4"
+}
+
+### Radera samtal (meddelanden ryker, anteckningar frikopplas)
+DELETE {{host}}/api/conversations/{{CONV_ID}}
+
+### Uppdatera betyg (siffra + valfri motivering)
+PUT {{host}}/api/books/{{BOOK_ID}}/notes/NOTE_ID
+Content-Type: application/json
+
+{
+  "content": null,
+  "rating": 4
+}
+
+### Radera anteckning
+DELETE {{host}}/api/books/{{BOOK_ID}}/notes/NOTE_ID
+
+### Radera bok (samtal, meddelanden och anteckningar ryker med)
+DELETE {{host}}/api/books/{{BOOK_ID}}
+
+### Sätt betyg på bok (null = rensa)
+PUT {{host}}/api/books/{{BOOK_ID}}/rating
+Content-Type: application/json
+
+{
+  "rating": 4,
+  "motivation": "Stark inledning!"
+}
+
+### Hämta AI-sammanfattning av boken
+GET {{host}}/api/books/{{BOOK_ID}}/summary
+Accept: application/json

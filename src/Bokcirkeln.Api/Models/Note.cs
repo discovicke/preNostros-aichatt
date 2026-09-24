@@ -42,8 +42,8 @@ public class Note
     /// </remarks>
     public NoteKind Kind { get; set; }
 
-    [Required]
-    public string Content { get; set; } = string.Empty;
+    /// <summary>Anteckningstext. Null tillåtet för Betyg (ren siffra utan motivering).</summary>
+    public string? Content { get; set; }
 
     [Range(1, 5)]
     public int? Rating { get; set; }

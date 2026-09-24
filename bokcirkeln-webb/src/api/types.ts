@@ -31,6 +31,8 @@ export interface Book {
   id: string
   title: string
   author: string
+  rating: number | null
+  ratingMotivation: string | null
   createdAt: string
 }
 
@@ -41,7 +43,7 @@ export type NoteKind = 'Citat' | 'Tanke' | 'Analys' | 'Betyg'
 export interface Note {
   id: string
   kind: NoteKind
-  content: string
+  content: string | null
   rating: number | null
   conversationId: string | null
   createdAt: string

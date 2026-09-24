@@ -9,8 +9,8 @@ public sealed record CreateNoteRequest
     /// <summary>Typ: Citat, Tanke, Analys eller Betyg.</summary>
     public NoteKind Kind { get; init; }
 
-    [Required]
-    public string Content { get; init; } = string.Empty;
+    /// <summary>Anteckningstext. Null tillåtet för Betyg (se reglerna i endpointen).</summary>
+    public string? Content { get; init; }
 
     /// <summary>Betyg 1–5, krävs när Kind är Betyg.</summary>
     [Range(1, 5)]
@@ -24,7 +24,16 @@ public sealed record CreateNoteRequest
 public sealed record NoteResponse(
     Guid Id,
     NoteKind Kind,
-    string Content,
+    string? Content,
     int? Rating,
     Guid? ConversationId,
     DateTime CreatedAt);
+
+/// <summary>Begäran för att uppdatera en anteckning (samma regler som vid skapande).</summary>
+public sealed record UpdateNoteRequest
+{
+    public string? Content { get; init; }
+
+    [Range(1, 5)]
+    public int? Rating { get; init; }
+}

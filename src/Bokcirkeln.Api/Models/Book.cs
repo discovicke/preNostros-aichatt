@@ -18,6 +18,15 @@ public class Book
     
     [Required, MaxLength(200)]
     public string Author { get; set; } = string.Empty;
+
+    /// <summary>Bokens betyg 1–5. Null = inget satt.</summary>
+    [Range(1, 5)]
+    public int? Rating { get; set; }
+
+    /// <summary>Valfri motivering till betyget.</summary>
+    public string? RatingMotivation { get; set; }
+    
+    public string? Summary { get; set; }
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

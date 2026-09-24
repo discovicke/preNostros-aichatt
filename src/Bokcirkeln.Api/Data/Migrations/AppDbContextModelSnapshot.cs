@@ -31,6 +31,15 @@ namespace Bokcirkeln.Api.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("Rating")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RatingMotivation")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -103,7 +112,6 @@ namespace Bokcirkeln.Api.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Content")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ConversationId")
@@ -132,7 +140,7 @@ namespace Bokcirkeln.Api.Data.Migrations
                     b.HasOne("Bokcirkeln.Api.Models.Book", "Book")
                         .WithMany("Conversations")
                         .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Book");
                 });
@@ -158,7 +166,8 @@ namespace Bokcirkeln.Api.Data.Migrations
 
                     b.HasOne("Bokcirkeln.Api.Models.Conversation", "Conversation")
                         .WithMany()
-                        .HasForeignKey("ConversationId");
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Book");
 

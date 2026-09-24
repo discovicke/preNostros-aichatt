@@ -22,12 +22,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(c => c.Book)
             .WithMany(b => b.Conversations)
             .HasForeignKey(c => c.BookId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Note>()
             .HasOne(n => n.Book)
             .WithMany(b => b.Notes)
             .HasForeignKey(n => n.BookId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Note>()
+            .HasOne(n => n.Conversation)
+            .WithMany()
+            .HasForeignKey(n => n.ConversationId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

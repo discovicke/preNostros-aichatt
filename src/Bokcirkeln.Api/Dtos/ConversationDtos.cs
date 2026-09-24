@@ -12,6 +12,13 @@ public sealed record CreateConversationRequest
     public Guid? BookId { get; init; }
 }
 
+/// <summary>Begäran för att döpa om ett samtal.</summary>
+public sealed record UpdateConversationRequest
+{
+    [Required, MaxLength(200)]
+    public string Title { get; init; } = string.Empty;
+}
+
 /// <summary>Ett samtal i listvyer.</summary>
 public sealed record ConversationResponse(Guid Id, string Title, Guid? BookId, DateTime CreatedAt);
 

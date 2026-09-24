@@ -19,6 +19,8 @@ public static class ConversationEndpoints
         group.MapPost("/", Create).AddEndpointFilter<ValidationFilter<CreateConversationRequest>>();
         group.MapGet("/", List);
         group.MapGet("/{id:guid}", GetById);
+        group.MapPut("/{id:guid}", Rename).AddEndpointFilter<ValidationFilter<UpdateConversationRequest>>();
+        group.MapDelete("/{id:guid}", DeleteConversation);
         group.MapPost("/{id:guid}/messages", SendMessage).AddEndpointFilter<ValidationFilter<SendMessageRequest>>();
 
         return group;
@@ -58,6 +60,30 @@ public static class ConversationEndpoints
             conversation.BookId,
             conversation.CreatedAt,
             conversation.Messages.OrderBy(m => m.CreatedAt).Select(Map).ToList()));
+    }
+
+    /// <summary>Döper om ett samtal.</summary>
+    private static async Task<Results<Ok<ConversationResponse>, NotFound>> Rename(Guid id, UpdateConversationRequest request, AppDbContext db, CancellationToken ct)
+    {
+        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (conversation is null)
+            return TypedResults.NotFound();
+
+        conversation.Title = request.Title;
+        await db.SaveChangesAsync(ct);
+        return TypedResults.Ok(Map(conversation));
+    }
+
+    /// <summary>Raderar ett samtal med meddelanden. Anteckningar frikopplas.</summary>
+    private static async Task<Results<NoContent, NotFound>> DeleteConversation(Guid id, AppDbContext db, CancellationToken ct)
+    {
+        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (conversation is null)
+            return TypedResults.NotFound();
+
+        db.Conversations.Remove(conversation);
+        await db.SaveChangesAsync(ct);
+        return TypedResults.NoContent();
     }
 
     /// <summary>Skickar ett meddelande och får bokcirkelsledarens svar.</summary>
