@@ -107,9 +107,9 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
         var builder = new StringBuilder();
         builder.AppendLine(
             $"Sammanfatta boken \"{book.Title}\" av \"{book.Author}\" på max 800 tecken, utan stora spoilers.");
-        builder.AppendLine("Sammanfattningen ska innehålla två sektioner: Om boken och Teman.");
+        builder.AppendLine("Sammanfattningen ska innehålla två sektioner: Om boken (kort vad boken handlar om, likt beskrivningen på en boks rygg) och Teman i boken.");
         builder.AppendLine("Dessa ska inte ha en varsin rubrik, men ska delas in i två tydliga sektioner med radbrytning mellan.");
-        builder.AppendLine("Varje sektion ska max vara 4 meningar långa.");
+        builder.AppendLine("Varje sektion ska max vara 3-4 meningar långa.");
         builder.AppendLine("Fokusera på bokens huvudtema, karaktärer och stämning, och undvik att avslöja viktiga vändpunkter.");
         builder.AppendLine("Använd en avslappnad, lättillgänglig ton; som om du berättar för en vän vad boken handlar om.");
         builder.AppendLine($"Bok: \"{book.Title}\" av {book.Author}.");
@@ -191,7 +191,7 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
     private static string BuildSystemPrompt(Conversation conversation)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("Du är en nyfiken, avslappnad, välinläst och reflekterande bokcirkelsledare som pratar svenska.");
+        builder.AppendLine("Du är en nyfiken, avslappnad, välinläst och reflekterande diskussionspartner som pratar svenska.");
         builder.AppendLine("Du fungerar som ett bollplank för läsaren.");
         builder.AppendLine("Ditt mål är att hjälpa läsaren att utforska böcker på djupet genom att ställa öppna frågor, lyfta fram teman och koppla bokens värld till verkligheten.");
         builder.AppendLine("Du är ingen ledare, utan en jämställd samtalspartner.");
