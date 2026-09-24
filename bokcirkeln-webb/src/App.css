@@ -94,12 +94,131 @@
   flex-shrink: 0;
 }
 
-.line.mine .who {
-  color: var(--blue);
+.line .text {
+  flex: 1;
+  min-width: 0;
 }
 
-.line.theirs .who {
+/* Egen rad: terminal-echo - nedtonad text efter peach-prompt. */
+.line.mine .who {
+  color: var(--peach);
+}
+
+.line.mine .text {
+  color: var(--dim);
+}
+
+.line.theirs {
+  margin-top: 6px;
+  border-left: 2px solid var(--green);
+  padding-left: 12px;
+}
+
+.line.theirs.streaming {
+  animation: sideline-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes sideline-pulse {
+  50% {
+    border-left-color: var(--dim);
+  }
+}
+
+.line.theirs .text {
+  max-width: 85ch;
+  white-space: normal;
+}
+
+.line.theirs .text > :first-child {
+  margin-top: 0;
+}
+
+/* Markdown med terminaltema (Markdown.tsx). */
+.md-p {
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.md-p:last-child,
+.md-list:last-child,
+.md-quote:last-child,
+.md-block:last-child {
+  margin-bottom: 0;
+}
+
+.md-strong {
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.md-code {
+  color: var(--yellow);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 1px 5px;
+  font-size: 14px;
+}
+
+.md-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 10px 12px;
+  margin: 0 0 10px;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.md-block .md-code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+}
+
+.md-list {
+  margin: 0 0 10px;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.md-list li::marker {
   color: var(--green);
+}
+
+.md-quote {
+  margin: 0 0 10px;
+  padding-left: 12px;
+  border-left: 2px solid var(--dim);
+  color: var(--dim);
+}
+
+h1.md-heading {
+  font-size: 18px;
+}
+
+h2.md-heading {
+  font-size: 16px;
+}
+
+h3.md-heading {
+  font-size: 15px;
+}
+
+.md-heading {
+  color: var(--peach);
+  margin: 14px 0 8px;
+}
+
+.md-heading:first-child {
+  margin-top: 0;
+}
+
+.md-link {
+  color: var(--orange);
 }
 
 .thinking {

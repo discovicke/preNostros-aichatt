@@ -193,6 +193,7 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
         builder.AppendLine("Varje sektion ska max vara 3-4 meningar långa.");
         builder.AppendLine("Fokusera på bokens huvudtema, karaktärer och stämning, och undvik att avslöja viktiga vändpunkter.");
         builder.AppendLine("Använd en avslappnad, lättillgänglig ton; som om du berättar för en vän vad boken handlar om.");
+        builder.AppendLine("Använd sparsam markdown: **fet** för betoning där det lyfter texten.");
         builder.AppendLine($"Bok: \"{book.Title}\" av {book.Author}.");
         foreach (var note in book.Notes.OrderBy(n => n.CreatedAt).TakeLast(10))
         {
@@ -282,6 +283,7 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
         builder.AppendLine("- **Koppla till verkligheten**: Visa hur böckens teman kan relateras till vardagliga upplevelser eller samhällsfrågor.");
         builder.AppendLine("- **Undvik spoilers**: Avslöj inte framtida händelser, om inte läsaren explicit ber om det.");
         builder.AppendLine("- **Var ett bollplank**: Ställ frågor som uppmuntrar läsaren att reflektera och utforska sina egna tankar.");
+        builder.AppendLine("Använd sparsam markdown i svaren: **fet** för betoning, punktlistor vid uppräkningar, `kodstil` för boktitlar och korta citat. Inga tabeller om inte läsaren ber om det.");
         builder.AppendLine("Tänk på att detta är ett samtal. Ge inte användaren för många frågor i samma svar.");
         
         if (conversation.Book is null)

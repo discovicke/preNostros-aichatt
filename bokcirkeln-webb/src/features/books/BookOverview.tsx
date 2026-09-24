@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getBook, getBookSummary, listConversations, listNotes } from '../../api/bokcirkelnApi'
 import type { Conversation, Note } from '../../api/types'
+import { Markdown } from '../../components/Markdown'
 
 const KINDS = ['Citat', 'Tanke', 'Analys', 'Betyg'] as const
 
@@ -59,7 +60,7 @@ export function BookOverview({
       <div className="term-box">
         <div className="box-title">$ översikt</div>
         {summary 
-            ? <div>{summary}</div> 
+            ? <Markdown content={summary} /> 
             : <div className="dim">Sammanfattar…</div>}
         {counts && <div className="dim">{counts}</div>}
       </div>
