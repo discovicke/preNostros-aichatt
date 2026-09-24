@@ -44,3 +44,11 @@ public sealed record SendMessageRequest
 /// <summary>AIs svar.</summary>
 /// <param name="Reply">Svarstexten.</param>
 public sealed record SendMessageResponse(string Reply);
+
+/// <summary>Ett token-chunk i svarströmmen (SSE data-händelse).</summary>
+/// <param name="Token">Textdelen modellen just genererade.</param>
+public sealed record StreamTokenEvent(string Token);
+
+/// <summary>Fel mitt i svarströmmen (SSE error-händelse).</summary>
+/// <param name="Error">Felmeddelande.</param>
+public sealed record StreamErrorEvent(string Error);
