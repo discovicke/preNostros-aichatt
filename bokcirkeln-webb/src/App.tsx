@@ -33,6 +33,8 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  // Id för bubblan som strömmas just nu — den renderas rått tills svaret är klart.
+  const [streamingId, setStreamingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [command, setCommand] = useState<CommandName | null>(null)
   const [overlay, setOverlay] = useState<null | 'book-create' | 'conversation-create' | 'note-create'>(null)
@@ -123,6 +125,7 @@ export default function App() {
   function selectBook(id: string | null) {
     streamController.current?.abort()
     streamController.current = null
+    setStreamingId(null)
     setSelectedBookId(id)
     setConversationId(null)
     setMessages([])
@@ -132,6 +135,7 @@ export default function App() {
   function leaveAll() {
     streamController.current?.abort()
     streamController.current = null
+    setStreamingId(null)
     setInput('')
     setError(null)
     setSelectedBookId(null)
@@ -205,8 +209,9 @@ export default function App() {
       const controller = new AbortController()
       streamController.current = controller
       const placeholder = localMessage('assistant', '')
-      // Tom assistentrad direkt - tokens fylls på allt eftersom de anländer.
+      // Tom assistentrad direkt — tokens fylls på allt eftersom de anländer.
       setMessages((previousMessages) => [...previousMessages, placeholder])
+      setStreamingId(placeholder.id)
       await sendMessageStream(id, text, (token) => {
         setMessages((previousMessages) =>
           previousMessages.map((message) =>
@@ -220,6 +225,7 @@ export default function App() {
         return
       setError('Något gick fel - försök igen.')
     } finally {
+      setStreamingId(null)
       streamController.current = null
       setSending(false)
     }
@@ -257,9 +263,9 @@ export default function App() {
           />
         )}
             {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
+              <ChatMessage key={message.id} message={message} streaming={message.id === streamingId} />
             ))}
-            {sending && <div className="thinking">preNostros skriver…</div>}
+            {sending && !streamingId && <div className="thinking">preNostros skriver…</div>}
           </>
         )}
         {error && <div className="terminal-error">! {error}</div>}

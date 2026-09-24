@@ -17,7 +17,7 @@ export function ContextBanner({
       {bookTitle && convTitle && (
         <span>
           <span className="tone-book">§ {bookTitle}</span>
-          <span className="dim">{' > '}</span>
+          <span className="dim">{' | '}</span>
           <span className="tone-conv">○ {convTitle}</span>
         </span>
       )}
