@@ -27,7 +27,11 @@ export function ConversationModal({
   useEffect(() => {
     async function load() {
       try {
-        setConversations(await listConversations(bookId))
+        const all = await listConversations(bookId)
+        // I rot (ingen bok) visas bara okopplade samtal.
+        setConversations(bookId 
+            ? all 
+            : all.filter((c) => !c.bookId))
       } catch {
         setError('Kunde inte ladda samtal.')
       }
@@ -74,8 +78,10 @@ export function ConversationModal({
         selectedId={activeId}
         onHighlight={nav.highlight}
         onPick={(id) => {
-          if (id === '__create__') onCreate()
-          else pick(id)
+          if (id === '__create__') 
+            onCreate()
+          else 
+            pick(id)
         }}
       />
       {conversations.length === 0 && <div className="dim">inga samtal ännu - skapa ett ovan</div>}

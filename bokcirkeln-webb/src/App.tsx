@@ -9,6 +9,7 @@ import { ChatMessage } from './components/ChatMessage'
 import { visibleCommands } from './components/CommandMenu'
 import type { CommandName, Level } from './components/CommandMenu'
 import { CommandMenu } from './components/CommandMenu'
+import { ContextBanner } from './components/ContextBanner'
 import { ConversationCreateModal } from './features/conversations/ConversationCreateModal'
 import { ConversationModal } from './features/conversations/ConversationModal'
 import { DeleteModal } from './components/DeleteModal'
@@ -20,6 +21,7 @@ import { NoteListModal } from './features/notes/NoteListModal'
 import { RatingModal } from './features/books/RatingModal'
 import { RenameModal } from './components/RenameModal'
 import { Sidebar } from './components/Sidebar'
+import { StartPage } from './components/StartPage'
 import './App.css'
 
 /** Terminal-chatt: böcker, samtal, betyg + chatt mot bokcirkel-API:t. */
@@ -87,7 +89,11 @@ export default function App() {
   }, [conversationId, convRefresh])
 
   // Aktuell nivå styr vilka kommandon som syns.
-  const level: Level = conversationId ? 'conversation' : selectedBookId ? 'book' : 'root'
+  const level: Level = conversationId 
+      ? 'conversation' 
+      : selectedBookId 
+          ? 'book' 
+          : 'root'
 
   // Menykommandon: filtrera på ordet efter "/".
   const showMenu = input.startsWith('/') && !sending
@@ -99,8 +105,12 @@ export default function App() {
     inputRef.current?.focus()
   }
 
-  /** Öppnar modal för valt kommando. */
+  /** /lämna agerar direkt, övriga kommandon öppnar modal. */
   function openCommand(name: CommandName) {
+    if (name === 'lämna') {
+      leaveAll()
+      return
+    }
     setInput('')
     setError(null)
     setMenuIndex(0)
@@ -114,18 +124,6 @@ export default function App() {
     setMessages([])
   }
 
-  /** Ett steg upp i trädet. Tyst i rot. */
-  function stepUp() {
-    setInput('')
-    setError(null)
-    if (conversationId) {
-      setConversationId(null)
-      setMessages([])
-    } else if (selectedBookId) {
-      setSelectedBookId(null)
-    }
-  }
-
   /** Lämna allt, tillbaka till rot. Tyst i rot. */
   function leaveAll() {
     setInput('')
@@ -135,21 +133,13 @@ export default function App() {
     setMessages([])
   }
 
-  /** Enter på /-text: tillbaka/lämna agerar direkt, övrigt öppnar modal. */
+  /** Enter på /-text: /lämna agerar direkt, övrigt öppnar modal. */
   function runSlashCommand(raw: string) {
     const word = raw.split(' ')[0]
-    if (word === 'tillbaka') {
-      stepUp()
-      return
-    }
-    if (word === 'lämna') {
-      leaveAll()
-      return
-    }
     const options = visibleCommands(level).filter((c) => c.name.startsWith(word))
     const pick = options[Math.min(menuIndex, Math.max(options.length - 1, 0))]
     if (!pick) {
-      setError('Okänt kommando — skriv /help för alla kommandon')
+      setError('Okänt kommando - skriv /help för alla kommandon')
       return
     }
     openCommand(pick.name)
@@ -184,7 +174,7 @@ export default function App() {
     try {
       await createFreshConversation()
     } catch {
-      setError('Kunde inte nå API:t — körs backend på http://localhost:5037?')
+      setError('Kunde inte nå API:t - körs backend på http://localhost:5037?')
     }
   }
 
@@ -220,7 +210,7 @@ export default function App() {
       const answer = await sendMessage(id, text)
       setMessages((m) => [...m, localMessage('assistant', answer.reply)])
     } catch {
-      setError('Något gick fel — försök igen.')
+      setError('Något gick fel - försök igen.')
     } finally {
       setSending(false)
     }
@@ -229,16 +219,23 @@ export default function App() {
   return (
     <div className="terminal">
       <header className="terminal-header">
+        <button
+          type="button"
+          className="terminal-button"
+          onClick={leaveAll}
+          disabled={!selectedBookId && !conversationId}
+          title="Lämna bok/samtal - tillbaka till rot (/lämna)"
+        >
+          /lämna
+        </button>
         <span className="prompt">bokcirkeln:~$</span>
         <span className="terminal-title">bokcirkel-chatt</span>
-        <span className="dim">
-          bok: {statusBook ?? '–'} · samtal: {statusConv ?? '–'}
-        </span>
         <button
           type="button"
           className="terminal-button"
           onClick={() => void startNewConversation()}
           disabled={sending}
+          title="Starta ett nytt samtal i vald bok"
         >
           /new
         </button>
@@ -254,12 +251,21 @@ export default function App() {
           onSelectConversation={(id) => void selectConversation(id)}
         />
         <div className="main-col">
+          <ContextBanner bookTitle={statusBook} convTitle={statusConv} />
           <main className="terminal-body">
-        {selectedBookId && !conversationId && <BookOverview bookId={selectedBookId} />}
-        {messages.map((m) => (
-          <ChatMessage key={m.id} message={m} />
-        ))}
-        {sending && <div className="thinking">bokcirkeln skriver…</div>}
+        {!selectedBookId && !conversationId ? (
+          <StartPage onPick={openCommand} />
+        ) : (
+          <>
+            {selectedBookId && !conversationId && (
+          <BookOverview bookId={selectedBookId} onSelectConversation={(id) => void selectConversation(id)} />
+        )}
+            {messages.map((m) => (
+              <ChatMessage key={m.id} message={m} />
+            ))}
+            {sending && <div className="thinking">bokcirkeln skriver…</div>}
+          </>
+        )}
         {error && <div className="terminal-error">! {error}</div>}
         <div ref={bottomRef} />
       </main>
@@ -273,7 +279,7 @@ export default function App() {
           />
         )}
         <form className="terminal-input" onSubmit={(e) => void handleSubmit(e)}>
-          <span className="prompt">{statusBook ? `bokcirkeln(${statusBook}${statusConv ? `/${statusConv}` : ''}) ›` : 'bokcirkeln ›'}</span>
+          <span className="prompt">›</span>
           <input
             ref={inputRef}
             value={input}
@@ -283,6 +289,7 @@ export default function App() {
             }}
             onKeyDown={handleInputKey}
           placeholder="Skriv till bokcirkeln…"
+          title="Vanlig text chattar - börja med / för kommandon (/help visar alla)"
           disabled={sending}
           autoFocus
         />

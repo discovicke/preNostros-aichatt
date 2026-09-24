@@ -35,7 +35,10 @@ export function Sidebar({
   useEffect(() => {
     async function load() {
       try {
-        setConversations(await listConversations(selectedBookId))
+        const all = await listConversations(selectedBookId)
+        setConversations(selectedBookId 
+            ? all 
+            : all.filter((c) => !c.bookId))
       } catch {
         // Dev-stöd: riktiga fel visas i modalerna.
       }

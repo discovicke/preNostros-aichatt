@@ -11,7 +11,6 @@ export type CommandName =
   | 'betyg'
   | 'döp-om'
   | 'radera'
-  | 'tillbaka'
   | 'lämna'
   | 'help'
 
@@ -33,7 +32,6 @@ export const COMMANDS: SlashCommand[] = [
   { name: 'betyg', description: 'visa/sätt betyg 1–5', usage: '/betyg', levels: ['book'] },
   { name: 'döp-om', description: 'döp om vald bok / aktivt samtal', usage: '/döp-om', levels: ['book', 'conversation'] },
   { name: 'radera', description: 'radera vald bok / aktivt samtal', usage: '/radera', levels: ['book', 'conversation'] },
-  { name: 'tillbaka', description: 'ett steg upp i trädet', usage: '/tillbaka', levels: ['root', 'book', 'conversation'] },
   { name: 'lämna', description: 'lämna allt, tillbaka till rot', usage: '/lämna', levels: ['root', 'book', 'conversation'] },
   { name: 'help', description: 'visa alla kommandon', usage: '/help', levels: ['root', 'book', 'conversation'] },
 ]

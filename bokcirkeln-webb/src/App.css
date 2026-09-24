@@ -230,6 +230,28 @@
   color: #f85149;
 }
 
+.start-page {
+  margin: auto;
+  width: min(520px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 24px 16px;
+}
+
+.start-title {
+  text-align: center;
+  color: #3fb950;
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.context-banner {
+  text-align: center;
+  padding: 10px 16px 4px;
+  font-size: 15px;
+}
+
 .help-row {
   display: flex;
   gap: 10px;
@@ -241,14 +263,24 @@
   flex-shrink: 0;
 }
 
-.overview {
-  border: 1px solid #21262d;
+.term-box {
+  background: #010409;
+  border: 1px solid #30363d;
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.term-box .command-item {
+  border-radius: 4px;
+}
+
+.box-title {
+  color: #3fb950;
+  font-size: 13px;
 }
 
 .danger-button {
