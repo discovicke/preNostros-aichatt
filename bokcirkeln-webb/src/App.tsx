@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
-import { createConversation, getBook, getConversation, sendMessage } from './api/bokcirkelnApi'
+import { createConversation, getBook, getConversation, sendMessageStream } from './api/bokcirkelnApi'
 import type { ChatMessage as ChatMessageType } from './api/types'
 import { BookCreateModal } from './features/books/BookCreateModal'
 import { BookModal } from './features/books/BookModal'
@@ -41,6 +41,8 @@ export default function App() {
   const [statusConv, setStatusConv] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Pågående svarström - avbryts vid navigation så inga tokens läcker in i fel vy.
+  const streamController = useRef<AbortController | null>(null)
 
   // Håll senaste raden synlig.
   useEffect(() => {
@@ -119,6 +121,8 @@ export default function App() {
 
   /** Gå in i bok: rensa samtal + chatt. */
   function selectBook(id: string | null) {
+    streamController.current?.abort()
+    streamController.current = null
     setSelectedBookId(id)
     setConversationId(null)
     setMessages([])
@@ -126,6 +130,8 @@ export default function App() {
 
   /** Lämna allt, tillbaka till rot. Tyst i rot. */
   function leaveAll() {
+    streamController.current?.abort()
+    streamController.current = null
     setInput('')
     setError(null)
     setSelectedBookId(null)
@@ -191,16 +197,30 @@ export default function App() {
     setInput('')
     setError(null)
     setSending(true)
-    // Visa din rad direkt, svaret läggs till när API:t svarat.
-    // Samtal skapas lazy vid första meddelandet — ingen tomma samtal i listan.
+    // Visa din rad direkt, svaret strömmas in token för token.
+    // Samtal skapas lazy vid första meddelandet - ingen tomma samtal i listan.
     setMessages((previousMessages) => [...previousMessages, localMessage('user', text)])
     try {
       const id = conversationId ?? (await createFreshConversation())
-      const answer = await sendMessage(id, text)
-      setMessages((previousMessages) => [...previousMessages, localMessage('assistant', answer.reply)])
-    } catch {
+      const controller = new AbortController()
+      streamController.current = controller
+      const placeholder = localMessage('assistant', '')
+      // Tom assistentrad direkt - tokens fylls på allt eftersom de anländer.
+      setMessages((previousMessages) => [...previousMessages, placeholder])
+      await sendMessageStream(id, text, (token) => {
+        setMessages((previousMessages) =>
+          previousMessages.map((message) =>
+            message.id === placeholder.id
+              ? { ...message, content: message.content + token }
+              : message))
+      }, controller.signal)
+    } catch (error) {
+      // Avbruten ström (navigation) - det partiella svaret ligger redan kvar.
+      if (error instanceof DOMException && error.name === 'AbortError') 
+        return
       setError('Något gick fel - försök igen.')
     } finally {
+      streamController.current = null
       setSending(false)
     }
   }

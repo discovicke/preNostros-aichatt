@@ -42,6 +42,79 @@ export function sendMessage(conversationId: string, content: string): Promise<Se
   })
 }
 
+/** En SSE-händelse från svarströmmen: token-chunk, fel eller slut. */
+interface StreamEvent {
+  event: 'token' | 'error' | 'done'
+  data: string
+}
+
+/** Delar upp en rå SSE-händelse (rader fram till tomrad) i typ + data. */
+function parseStreamEvent(rawEvent: string): StreamEvent | null {
+  let eventType = 'message'
+  const dataLines: string[] = []
+  for (const line of rawEvent.split('\n')) {
+    if (line.startsWith('event:')) {
+      eventType = line.slice('event:'.length).trim()
+    } else if (line.startsWith('data:')) {
+      dataLines.push(line.slice('data:'.length).trim())
+    }
+  }
+  const data = dataLines.join('\n')
+  if (data === '[DONE]') 
+    return { event: 'done', data }
+  if (eventType === 'error') 
+    return { event: 'error', data }
+  if (!data) 
+    return null
+  return { event: 'token', data }
+}
+
+/**
+ * Skickar ett meddelande och strömmar svaret token för token.
+ * Anropar onToken för varje chunk; klar när löftet resolvas.
+ * Kastar Error vid HTTP-fel, fel mitt i strömmen eller avsaknad av strömstöd.
+ */
+export async function sendMessageStream(
+  conversationId: string,
+  content: string,
+  onToken: (token: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+    signal,
+  })
+  if (!res.ok) 
+    throw new Error(`API ${res.status} på /api/conversations/${conversationId}/messages/stream`)
+  if (!res.body) 
+    throw new Error('Strömning stöds inte i webbläsaren.')
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) 
+      break
+    buffer += decoder.decode(value, { stream: true })
+    let boundary = buffer.indexOf('\n\n')
+    while (boundary !== -1) {
+      const streamEvent = parseStreamEvent(buffer.slice(0, boundary))
+      buffer = buffer.slice(boundary + 2)
+      if (streamEvent?.event === 'error') {
+        const message = (JSON.parse(streamEvent.data) as { error?: string }).error ?? 'Okänt strömfel.'
+        throw new Error(message)
+      }
+      if (streamEvent?.event === 'token') {
+        onToken((JSON.parse(streamEvent.data) as { token: string }).token)
+      }
+      boundary = buffer.indexOf('\n\n')
+    }
+  }
+}
+
 /** Hämtar alla böcker, nyaste först. */
 export function listBooks(): Promise<Book[]> {
   return apiFetch<Book[]>('/api/books')

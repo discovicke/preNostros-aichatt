@@ -59,12 +59,7 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
     public async Task<string> SendMessageAsync(Guid conversationId, string content,
         CancellationToken cancellationToken = default)
     {
-        var conversation = await _db.Conversations
-                               .Include(c => c.Book)
-                               !.ThenInclude(b => b!.Notes)
-                               .Include(c => c.Messages)
-                               .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken)
-                           ?? throw new KeyNotFoundException($"Samtalet {conversationId} hittades inte.");
+        var conversation = await LoadConversationAsync(conversationId, cancellationToken);
 
         _db.Messages.Add(new Message
         {
@@ -90,6 +85,92 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
         await _db.SaveChangesAsync(cancellationToken);
 
         return reply;
+    }
+
+    /// <summary>
+    /// Skickar ett användarmeddelande och strömmar modellens svar token för token.
+    /// </summary>
+    /// <remarks>
+    /// Samma flöde som <see cref="SendMessageAsync"/>, men svaret rapporteras
+    /// via <paramref name="onToken"/> allt eftersom det genereras så att klienten
+    /// kan rendera det löpande. Hela svaret sparas som <see cref="Message"/> med
+    /// rollen <c>"assistant"</c> när strömmen är klar - även partiellt om klienten
+    /// avbryter mitt i (det användaren hann se är det som sparas).
+    /// </remarks>
+    /// <param name="conversationId">Id för samtalet att svara i.</param>
+    /// <param name="content">Användarens meddelandetext.</param>
+    /// <param name="onToken">Anropas med varje textchunk från modellen.</param>
+    /// <param name="cancellationToken">CT</param>
+    /// <returns>Hela modellens svarstext.</returns>
+    /// <exception cref="KeyNotFoundException">Kastas när samtalet inte finns.</exception>
+    /// <exception cref="InvalidOperationException">Kastas när Azure OpenAI inte är konfigurerat.</exception>
+    public async Task<string> StreamMessageAsync(Guid conversationId, string content,
+        Func<string, Task> onToken, CancellationToken cancellationToken = default)
+    {
+        var conversation = await LoadConversationAsync(conversationId, cancellationToken);
+
+        _db.Messages.Add(new Message
+        {
+            ConversationId = conversation.Id,
+            Role = "user",
+            Content = content
+        });
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var prompt = BuildPrompt(conversation);
+        var replyBuilder = new StringBuilder();
+        var cancelled = false;
+        try
+        {
+            AsyncCollectionResult<StreamingChatCompletionUpdate> stream =
+                GetChatClient().CompleteChatStreamingAsync(prompt, cancellationToken: cancellationToken);
+            await foreach (StreamingChatCompletionUpdate update in stream.WithCancellation(cancellationToken))
+            {
+                foreach (ChatMessageContentPart part in update.ContentUpdate)
+                {
+                    if (string.IsNullOrEmpty(part.Text))
+                        continue;
+                    replyBuilder.Append(part.Text);
+                    await onToken(part.Text);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Klienten bröt strömmen — spara det partiella svaret nedan.
+            cancelled = true;
+        }
+
+        var reply = replyBuilder.ToString();
+        if (reply.Length > 0)
+        {
+            _db.Messages.Add(new Message
+            {
+                ConversationId = conversation.Id,
+                Role = "assistant",
+                Content = reply
+            });
+            // Vid avbrott är token redan cancellerad — spara ändå det partiella svaret.
+            await _db.SaveChangesAsync(cancelled ? CancellationToken.None : cancellationToken);
+        }
+
+        return reply;
+    }
+
+    /// <summary>Läser in ett samtal med bok, anteckningar och meddelanden.</summary>
+    /// <param name="conversationId">Id för samtalet.</param>
+    /// <param name="cancellationToken">CT</param>
+    /// <returns>Samtalet med relaterade data.</returns>
+    /// <exception cref="KeyNotFoundException">Kastas när samtalet inte finns.</exception>
+    private async Task<Conversation> LoadConversationAsync(Guid conversationId,
+        CancellationToken cancellationToken)
+    {
+        return await _db.Conversations
+                       .Include(c => c.Book)
+                       !.ThenInclude(b => b!.Notes)
+                       .Include(c => c.Messages)
+                       .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken)
+                   ?? throw new KeyNotFoundException($"Samtalet {conversationId} hittades inte.");
     }
 
     /// <summary>Hämtar en kort AI-sammanfattning av vad boken handlar om.</summary>

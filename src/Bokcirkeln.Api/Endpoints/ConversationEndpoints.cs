@@ -1,10 +1,13 @@
 using System.ClientModel;
+using System.Text.Json;
 using Bokcirkeln.Api.Data;
 using Bokcirkeln.Api.Dtos;
 using Bokcirkeln.Api.Models;
 using Bokcirkeln.Api.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Bokcirkeln.Api.Endpoints;
 
@@ -22,6 +25,7 @@ public static class ConversationEndpoints
         group.MapPut("/{id:guid}", Rename).AddEndpointFilter<ValidationFilter<UpdateConversationRequest>>();
         group.MapDelete("/{id:guid}", DeleteConversation);
         group.MapPost("/{id:guid}/messages", SendMessage).AddEndpointFilter<ValidationFilter<SendMessageRequest>>();
+        group.MapPost("/{id:guid}/messages/stream", StreamMessage).AddEndpointFilter<ValidationFilter<SendMessageRequest>>();
 
         return group;
     }
@@ -107,11 +111,79 @@ public static class ConversationEndpoints
         }
     }
 
+    /// <summary>
+    /// Skickar ett meddelande och strömmar AIs svar som Server-Sent Events.
+    /// </summary>
+    /// <remarks>
+    /// Protokoll: varje token skickas som <c>data: {"token":"..."}</c> följt av tom rad,
+    /// strömmen avslutas med <c>data: [DONE]</c>. Fel före första token ger vanlig
+    /// statuskod (404/502); fel mitt i strömmen skickas som <c>event: error</c>
+    /// eftersom headers redan gått.
+    /// </remarks>
+    private static async Task StreamMessage(
+        Guid id, SendMessageRequest request, ChatService chat,
+        IOptions<JsonOptions> jsonOptions, HttpContext httpContext)
+    {
+        var cancellationToken = httpContext.RequestAborted;
+        var response = httpContext.Response;
+        // Samma camelCase-regler som övriga API-svar
+        var jsonSettings = jsonOptions.Value.SerializerOptions;
+        var streamed = false;
+        try
+        {
+            await chat.StreamMessageAsync(id, request.Content, async token =>
+            {
+                if (!streamed)
+                {
+                    streamed = true;
+                    response.StatusCode = StatusCodes.Status200OK;
+                    response.ContentType = "text/event-stream";
+                    response.Headers.CacheControl = "no-cache";
+                    response.Headers["X-Accel-Buffering"] = "no";
+                }
+                await response.WriteAsync(
+                    $"data: {JsonSerializer.Serialize(new StreamTokenEvent(token), jsonSettings)}\n\n",
+                    cancellationToken);
+                await response.Body.FlushAsync(cancellationToken);
+            }, cancellationToken);
+
+            if (!streamed)
+            {
+                response.StatusCode = StatusCodes.Status200OK;
+                response.ContentType = "text/event-stream";
+                response.Headers.CacheControl = "no-cache";
+            }
+            await response.WriteAsync("data: [DONE]\n\n", cancellationToken);
+            await response.Body.FlushAsync(cancellationToken);
+        }
+        catch (KeyNotFoundException) when (!streamed)
+        {
+            response.StatusCode = StatusCodes.Status404NotFound;
+        }
+        catch (ClientResultException ex) when (!streamed)
+        {
+            response.StatusCode = StatusCodes.Status502BadGateway;
+            await response.WriteAsync(
+                $"AI-tjänsten svarade {ex.Status}: {ex.Message}", CancellationToken.None);
+        }
+        catch (ClientResultException ex)
+        {
+            await response.WriteAsync(
+                $"event: error\ndata: {JsonSerializer.Serialize(new StreamErrorEvent($"AI-tjänsten svarade {ex.Status}: {ex.Message}"), jsonSettings)}\n\n",
+                CancellationToken.None);
+            await response.Body.FlushAsync(CancellationToken.None);
+        }
+        catch (OperationCanceledException)
+        {
+            // Klienten kopplade bort - partiella svaret redan sparat. Tyst avslut.
+        }
+    }
+
     /// <summary>Mappar ett samtal till listformat.</summary>
-    private static ConversationResponse Map(Conversation c)
-        => new(c.Id, c.Title, c.BookId, c.CreatedAt);
+    private static ConversationResponse Map(Conversation conversation)
+        => new(conversation.Id, conversation.Title, conversation.BookId, conversation.CreatedAt);
 
     /// <summary>Mappar ett meddelande till API-format.</summary>
-    private static MessageResponse Map(Message m)
-        => new(m.Id, m.Role, m.Content, m.CreatedAt);
+    private static MessageResponse Map(Message message)
+        => new(message.Id, message.Role, message.Content, message.CreatedAt);
 }
