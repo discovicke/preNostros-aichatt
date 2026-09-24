@@ -15,8 +15,8 @@ export function useListNav(count: number) {
   }
 
   /** Sätt markeringen direkt (mus-hover). */
-  function highlight(i: number) {
-    setIndex(i)
+  function highlight(targetIndex: number) {
+    setIndex(targetIndex)
   }
 
   return { index: safeIndex, move, highlight }

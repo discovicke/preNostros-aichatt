@@ -3,13 +3,14 @@ import type { Book, Conversation, ConversationDetail, Note, NoteKind, SendMessag
 const API_BASE = 'http://localhost:5037'
 
 /** fetch med JSON + fel vid icke-2xx. Anroparen visar felet. */
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function apiFetch<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   })
-  if (!res.ok) throw new Error(`API ${res.status} på ${path}`)
-  return res.json() as Promise<T>
+  if (!res.ok) 
+    throw new Error(`API ${res.status} på ${path}`)
+  return res.json() as Promise<TResponse>
 }
 
 /** Skapar ett nytt samtal, valfritt kopplat till en bok. */
@@ -22,7 +23,9 @@ export function createConversation(title: string, bookId: string | null): Promis
 
 /** Hämtar samtal, nyaste först. Filtrera med bok-id. */
 export function listConversations(bookId?: string | null): Promise<Conversation[]> {
-  const path = bookId ? `/api/conversations?bookId=${bookId}` : '/api/conversations'
+  const path = bookId 
+      ? `/api/conversations?bookId=${bookId}` 
+      : '/api/conversations'
   return apiFetch<Conversation[]>(path)
 }
 
@@ -78,7 +81,8 @@ const summaryCache = new Map<string, string>()
 /** Hämtar AI-sammanfattning (cachas per bok i sessionen). */
 export async function getBookSummary(bookId: string): Promise<string> {
   const cached = summaryCache.get(bookId)
-  if (cached !== undefined) return cached
+  if (cached !== undefined) 
+    return cached
   const res = await apiFetch<{ summary: string }>(`/api/books/${bookId}/summary`)
   summaryCache.set(bookId, res.summary)
   return res.summary
@@ -105,7 +109,8 @@ export function createNote(
 /** Anrop utan svarskropp (204). Kastar Error vid fel. */
 async function apiVoid(path: string, init?: RequestInit): Promise<void> {
   const res = await fetch(`${API_BASE}${path}`, init)
-  if (!res.ok) throw new Error(`API ${res.status} på ${path}`)
+  if (!res.ok) 
+    throw new Error(`API ${res.status} på ${path}`)
 }
 
 /** Raderar en bok med samtal och anteckningar. */

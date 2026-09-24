@@ -20,7 +20,6 @@ import { NoteDeleteModal } from './features/notes/NoteDeleteModal'
 import { NoteListModal } from './features/notes/NoteListModal'
 import { RatingModal } from './features/books/RatingModal'
 import { RenameModal } from './components/RenameModal'
-import { Sidebar } from './components/Sidebar'
 import { StartPage } from './components/StartPage'
 import './App.css'
 
@@ -29,6 +28,7 @@ export default function App() {
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [convRefresh, setConvRefresh] = useState(0)
+  const [notesRefresh, setNotesRefresh] = useState(0)
   const [bookRefresh, setBookRefresh] = useState(0)
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [input, setInput] = useState('')
@@ -97,7 +97,7 @@ export default function App() {
 
   // Menykommandon: filtrera på ordet efter "/".
   const showMenu = input.startsWith('/') && !sending
-  const matches = visibleCommands(level).filter((c) => c.name.startsWith(input.slice(1).split(' ')[0]))
+  const matches = visibleCommands(level).filter((command) => command.name.startsWith(input.slice(1).split(' ')[0]))
 
   /** Stänger modal och ger fokus tillbaka till chatten. */
   function closeCommand() {
@@ -136,7 +136,7 @@ export default function App() {
   /** Enter på /-text: /lämna agerar direkt, övrigt öppnar modal. */
   function runSlashCommand(raw: string) {
     const word = raw.split(' ')[0]
-    const options = visibleCommands(level).filter((c) => c.name.startsWith(word))
+    const options = visibleCommands(level).filter((command) => command.name.startsWith(word))
     const pick = options[Math.min(menuIndex, Math.max(options.length - 1, 0))]
     if (!pick) {
       setError('Okänt kommando - skriv /help för alla kommandon')
@@ -150,10 +150,10 @@ export default function App() {
     if (!showMenu || matches.length === 0) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setMenuIndex((i) => (i + 1) % matches.length)
+      setMenuIndex((index) => (index + 1) % matches.length)
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setMenuIndex((i) => (i - 1 + matches.length) % matches.length)
+      setMenuIndex((index) => (index - 1 + matches.length) % matches.length)
     } else if (e.key === 'Escape') {
       setInput('')
     }
@@ -163,19 +163,8 @@ export default function App() {
   async function createFreshConversation(): Promise<string> {
     const conv = await createConversation('Nytt samtal', selectedBookId)
     setConversationId(conv.id)
-    setConvRefresh((n) => n + 1)
+    setConvRefresh((previous) => previous + 1)
     return conv.id
-  }
-
-  /** Nytt samtal via /new-knappen. */
-  async function startNewConversation() {
-    setError(null)
-    setMessages([])
-    try {
-      await createFreshConversation()
-    } catch {
-      setError('Kunde inte nå API:t - körs backend på http://localhost:5037?')
-    }
   }
 
   /** Laddar historik när ett samtal väljs i listan. */
@@ -204,11 +193,11 @@ export default function App() {
     setSending(true)
     // Visa din rad direkt, svaret läggs till när API:t svarat.
     // Samtal skapas lazy vid första meddelandet — ingen tomma samtal i listan.
-    setMessages((m) => [...m, localMessage('user', text)])
+    setMessages((previousMessages) => [...previousMessages, localMessage('user', text)])
     try {
       const id = conversationId ?? (await createFreshConversation())
       const answer = await sendMessage(id, text)
-      setMessages((m) => [...m, localMessage('assistant', answer.reply)])
+      setMessages((previousMessages) => [...previousMessages, localMessage('assistant', answer.reply)])
     } catch {
       setError('Något gick fel - försök igen.')
     } finally {
@@ -228,28 +217,10 @@ export default function App() {
         >
           /lämna
         </button>
-        <span className="prompt">bokcirkeln:~$</span>
-        <span className="terminal-title">bokcirkel-chatt</span>
-        <button
-          type="button"
-          className="terminal-button"
-          onClick={() => void startNewConversation()}
-          disabled={sending}
-          title="Starta ett nytt samtal i vald bok"
-        >
-          /new
-        </button>
+        <span className="terminal-title">preNostros</span>
       </header>
 
       <div className="content">
-        <Sidebar
-          selectedBookId={selectedBookId}
-          activeConversationId={conversationId}
-          bookRefresh={bookRefresh}
-          convRefresh={convRefresh}
-          onSelectBook={selectBook}
-          onSelectConversation={(id) => void selectConversation(id)}
-        />
         <div className="main-col">
           <ContextBanner bookTitle={statusBook} convTitle={statusConv} />
           <main className="terminal-body">
@@ -258,12 +229,17 @@ export default function App() {
         ) : (
           <>
             {selectedBookId && !conversationId && (
-          <BookOverview bookId={selectedBookId} onSelectConversation={(id) => void selectConversation(id)} />
+          <BookOverview
+            bookId={selectedBookId}
+            notesRefresh={notesRefresh}
+            convRefresh={convRefresh}
+            onSelectConversation={(id) => void selectConversation(id)}
+          />
         )}
-            {messages.map((m) => (
-              <ChatMessage key={m.id} message={m} />
+            {messages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
             ))}
-            {sending && <div className="thinking">bokcirkeln skriver…</div>}
+            {sending && <div className="thinking">preNostros skriver…</div>}
           </>
         )}
         {error && <div className="terminal-error">! {error}</div>}
@@ -279,7 +255,7 @@ export default function App() {
           />
         )}
         <form className="terminal-input" onSubmit={(e) => void handleSubmit(e)}>
-          <span className="prompt">›</span>
+          <span className="prompt">❯</span>
           <input
             ref={inputRef}
             value={input}
@@ -288,7 +264,7 @@ export default function App() {
               setMenuIndex(0)
             }}
             onKeyDown={handleInputKey}
-          placeholder="Skriv till bokcirkeln…"
+          placeholder="Skriv till preNostros…"
           title="Vanlig text chattar - börja med / för kommandon (/help visar alla)"
           disabled={sending}
           autoFocus
@@ -324,9 +300,15 @@ export default function App() {
       {command === 'betyg' && (
         <Modal title="/betyg" onClose={closeCommand}>
           {selectedBookId ? (
-            <RatingModal bookId={selectedBookId} onSaved={closeCommand} />
+            <RatingModal
+              bookId={selectedBookId}
+              onSaved={() => {
+                setNotesRefresh((previous) => previous + 1)
+                closeCommand()
+              }}
+            />
           ) : (
-            <div className="dim">Välj en bok först med /bok.</div>
+            <div className="dim">Välj en bok först med <span className="cmd">/bok</span>.</div>
           )}
         </Modal>
       )}
@@ -335,7 +317,7 @@ export default function App() {
           {selectedBookId ? (
             <NoteListModal bookId={selectedBookId} onCreate={() => setOverlay('note-create')} />
           ) : (
-            <div className="dim">Välj en bok först med /bok.</div>
+            <div className="dim">Välj en bok först med <span className="cmd">/bok</span>.</div>
           )}
         </Modal>
       )}
@@ -344,7 +326,7 @@ export default function App() {
           <BookCreateModal
             onCreated={(id) => {
               setSelectedBookId(id)
-              setBookRefresh((n) => n + 1)
+              setBookRefresh((previous) => previous + 1)
               setOverlay(null)
             }}
           />
@@ -357,7 +339,7 @@ export default function App() {
             onCreated={(id) => {
               setConversationId(id)
               setMessages([])
-              setConvRefresh((n) => n + 1)
+              setConvRefresh((previous) => previous + 1)
               setOverlay(null)
             }}
           />
@@ -365,7 +347,13 @@ export default function App() {
       )}
       {overlay === 'note-create' && selectedBookId && (
         <Modal title="/anteckning-ny" onClose={() => setOverlay(null)}>
-          <NoteCreateModal bookId={selectedBookId} onCreated={() => setOverlay(null)} />
+          <NoteCreateModal
+            bookId={selectedBookId}
+            onCreated={() => {
+              setNotesRefresh((previous) => previous + 1)
+              setOverlay(null)
+            }}
+          />
         </Modal>
       )}
       {command === 'döp-om' && (
@@ -375,7 +363,7 @@ export default function App() {
               kind="conversation"
               id={conversationId}
               onSaved={() => {
-                setConvRefresh((n) => n + 1)
+                setConvRefresh((previous) => previous + 1)
                 closeCommand()
               }}
             />
@@ -385,7 +373,7 @@ export default function App() {
               id={selectedBookId}
               onSaved={(title) => {
                 setStatusBook(title)
-                setBookRefresh((n) => n + 1)
+                setBookRefresh((previous) => previous + 1)
                 closeCommand()
               }}
             />
@@ -403,7 +391,7 @@ export default function App() {
               onDeleted={() => {
                 setConversationId(null)
                 setMessages([])
-                setConvRefresh((n) => n + 1)
+                setConvRefresh((previous) => previous + 1)
                 closeCommand()
               }}
             />
@@ -415,7 +403,7 @@ export default function App() {
                 setSelectedBookId(null)
                 setConversationId(null)
                 setMessages([])
-                setBookRefresh((n) => n + 1)
+                setBookRefresh((previous) => previous + 1)
                 closeCommand()
               }}
             />
@@ -434,16 +422,22 @@ export default function App() {
           {selectedBookId ? (
             <NoteListModal bookId={selectedBookId} onCreate={() => setOverlay('note-create')} />
           ) : (
-            <div className="dim">Välj en bok först med /bok.</div>
+            <div className="dim">Välj en bok först med <span className="cmd">/bok</span>.</div>
           )}
         </Modal>
       )}
       {command === 'anteckning-radera' && (
         <Modal title="/anteckning-radera" onClose={closeCommand}>
           {selectedBookId ? (
-            <NoteDeleteModal bookId={selectedBookId} onDeleted={closeCommand} />
+            <NoteDeleteModal
+              bookId={selectedBookId}
+              onDeleted={() => {
+                setNotesRefresh((previous) => previous + 1)
+                closeCommand()
+              }}
+            />
           ) : (
-            <div className="dim">Välj en bok först med /bok.</div>
+            <div className="dim">Välj en bok först med <span className="cmd">/bok</span>.</div>
           )}
         </Modal>
       )}

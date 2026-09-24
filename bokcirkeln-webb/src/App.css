@@ -1,10 +1,27 @@
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --border: #262626;
+  --text: #eeeeee;
+  --dim: #808080;
+  --blue: #5c9cf5;
+  --green: #7fd88f;
+  --orange: #f5a742;
+  --purple: #9d7cd8;
+  --cyan: #56b6c2;
+  --yellow: #e5c07b;
+  --red: #e06c75;
+  --peach: #fab283;
+  --hl: #262626;
+}
+
 .terminal {
   height: 100svh;
   display: flex;
   flex-direction: column;
-  background: #0d1117;
-  color: #c9d1d9;
-  font-family: ui-monospace, Consolas, monospace;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace;
   font-size: 15px;
   line-height: 1.5;
 }
@@ -13,31 +30,39 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px;
-  border-bottom: 1px solid #21262d;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .prompt {
-  color: #3fb950;
+  color: var(--peach);
 }
 
 .terminal-title {
-  color: #8b949e;
+  color: var(--dim);
   flex: 1;
 }
 
 .terminal-button {
   font: inherit;
-  color: #3fb950;
+  color: var(--orange);
   background: transparent;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  padding: 2px 10px;
+  border: none;
+  border-radius: 0;
+  padding: 2px 4px;
   cursor: pointer;
 }
 
+.terminal-button::before {
+  content: '[';
+}
+
+.terminal-button::after {
+  content: ']';
+}
+
 .terminal-button:hover:not(:disabled) {
-  border-color: #3fb950;
+  background: var(--hl);
 }
 
 .terminal-button:disabled {
@@ -70,15 +95,15 @@
 }
 
 .line.mine .who {
-  color: #3fb950;
+  color: var(--blue);
 }
 
 .line.theirs .who {
-  color: #d29922;
+  color: var(--green);
 }
 
 .thinking {
-  color: #8b949e;
+  color: var(--green);
   animation: blink 1s steps(2) infinite;
 }
 
@@ -89,7 +114,7 @@
 }
 
 .terminal-error {
-  color: #f85149;
+  color: var(--red);
 }
 
 .terminal-input {
@@ -97,7 +122,7 @@
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid #21262d;
+  border-top: 1px solid var(--border);
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
@@ -108,23 +133,36 @@
   flex: 1;
   font: inherit;
   color: inherit;
+  caret-color: var(--blue);
   background: transparent;
   border: none;
   outline: none;
 }
 
 .terminal-input input::placeholder {
-  color: #484f58;
+  color: var(--dim);
 }
 
 .terminal-input button {
   font: inherit;
-  color: #0d1117;
-  background: #3fb950;
+  color: var(--orange);
+  background: transparent;
   border: none;
-  border-radius: 6px;
-  padding: 4px 14px;
+  border-radius: 0;
+  padding: 4px 6px;
   cursor: pointer;
+}
+
+.terminal-input button::before {
+  content: '[';
+}
+
+.terminal-input button::after {
+  content: ']';
+}
+
+.terminal-input button:hover:not(:disabled) {
+  background: var(--hl);
 }
 
 .terminal-input button:disabled {
@@ -144,7 +182,7 @@
 }
 
 .dim {
-  color: #484f58;
+  color: var(--dim);
 }
 
 .stack {
@@ -160,18 +198,30 @@
 
 .modal input:focus,
 .modal select:focus {
-  border-color: #3fb950;
+  border-color: var(--orange);
 }
 
 .stack > button {
   font: inherit;
-  color: #0d1117;
-  background: #3fb950;
+  color: var(--orange);
+  background: transparent;
   border: none;
-  border-radius: 6px;
-  padding: 4px 14px;
+  border-radius: 0;
+  padding: 4px 6px;
   cursor: pointer;
   align-self: flex-start;
+}
+
+.stack > button::before {
+  content: '[';
+}
+
+.stack > button::after {
+  content: ']';
+}
+
+.stack > button:hover:not(:disabled) {
+  background: var(--hl);
 }
 
 .input-zone {
@@ -184,9 +234,9 @@
   left: 50%;
   transform: translateX(-50%);
   width: min(900px, calc(100% - 32px));
-  background: #010409;
-  border: 1px solid #30363d;
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
   margin-bottom: 8px;
   overflow: hidden;
   z-index: 10;
@@ -208,26 +258,31 @@
 
 .command-item:hover,
 .command-item.active {
-  background: #161b22;
+  background: var(--hl);
 }
 
 /** Samma meny-känsla fast statisk — används av SelectList i modaler. */
 .select-list {
-  background: #010409;
-  border: 1px solid #30363d;
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
   overflow-y: auto;
   max-height: 220px;
   margin-bottom: 8px;
 }
 
 .command-item .cmd {
-  color: #3fb950;
+  color: var(--orange);
+}
+
+/** Kommando i löptext — samma färg som i menyn. */
+.cmd {
+  color: var(--orange);
 }
 
 .command-hint {
   padding: 6px 12px;
-  color: #f85149;
+  color: var(--red);
 }
 
 .start-page {
@@ -241,9 +296,11 @@
 
 .start-title {
   text-align: center;
-  color: #3fb950;
-  font-size: 20px;
+  color: var(--peach);
+  font-size: 15px;
   margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .context-banner {
@@ -259,14 +316,14 @@
 }
 
 .help-row .cmd {
-  color: #3fb950;
+  color: var(--orange);
   flex-shrink: 0;
 }
 
 .term-box {
-  background: #010409;
-  border: 1px solid #30363d;
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
   padding: 12px;
   margin-bottom: 8px;
   display: flex;
@@ -275,29 +332,41 @@
 }
 
 .term-box .command-item {
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 .box-title {
-  color: #3fb950;
+  color: var(--peach);
   font-size: 13px;
 }
 
 .danger-button {
   font: inherit;
-  color: #f85149;
+  color: var(--red);
   background: none;
-  border: 1px solid #f85149;
-  border-radius: 6px;
-  padding: 4px 14px;
+  border: none;
+  border-radius: 0;
+  padding: 4px 6px;
   cursor: pointer;
   align-self: flex-start;
+}
+
+.danger-button::before {
+  content: '[';
+}
+
+.danger-button::after {
+  content: ']';
+}
+
+.danger-button:hover {
+  background: var(--hl);
 }
 
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(1, 4, 9, 0.7);
+  background: rgba(10, 10, 10, 0.75);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -309,9 +378,9 @@
   width: min(560px, calc(100% - 32px));
   max-height: 70vh;
   overflow-y: auto;
-  background: #0d1117;
-  border: 1px solid #30363d;
-  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
   padding: 16px;
 }
 
@@ -320,20 +389,40 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  color: #3fb950;
+  color: var(--peach);
 }
 
 .modal:focus {
   outline: none;
 }
 
+::selection {
+  background: rgba(127, 216, 143, 0.35);
+}
+
+:focus-visible {
+  outline: 1px solid var(--orange);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
 .modal input,
 .modal select {
   font: inherit;
   color: inherit;
-  background: #010409;
-  border: 1px solid #30363d;
-  border-radius: 6px;
+  caret-color: var(--blue);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
   padding: 4px 8px;
   outline: none;
   width: 100%;
@@ -342,18 +431,30 @@
 
 .modal input:focus,
 .modal select:focus {
-  border-color: #3fb950;
+  border-color: var(--orange);
 }
 
 .modal button[type='submit'] {
   font: inherit;
-  color: #0d1117;
-  background: #3fb950;
+  color: var(--orange);
+  background: transparent;
   border: none;
-  border-radius: 6px;
-  padding: 4px 14px;
+  border-radius: 0;
+  padding: 4px 6px;
   cursor: pointer;
   align-self: flex-start;
+}
+
+.modal button[type='submit']::before {
+  content: '[';
+}
+
+.modal button[type='submit']::after {
+  content: ']';
+}
+
+.modal button[type='submit']:hover:not(:disabled) {
+  background: var(--hl);
 }
 
 .modal button:disabled {
@@ -375,46 +476,22 @@
   min-height: 0;
 }
 
-.sidebar {
-  width: 200px;
-  flex-shrink: 0;
-  border-right: 1px solid #21262d;
-  padding: 12px;
-  overflow-y: auto;
-  font-size: 13px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.terminal-button,
+.terminal-input button,
+.modal button[type='submit'],
+.stack > button,
+.danger-button {
+  padding: 4px 10px;
 }
 
-.side-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.tone-book {
+  color: var(--purple);
 }
 
-.side-item {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  padding: 2px 0;
-  cursor: pointer;
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.tone-conv {
+  color: var(--cyan);
 }
 
-.side-item:hover {
-  text-decoration: underline;
-}
-
-.side-item.active {
-  color: #3fb950;
-}
-
-.side-dev {
-  color: #484f58;
-  font-size: 11px;
+.rating {
+  color: var(--yellow);
 }
