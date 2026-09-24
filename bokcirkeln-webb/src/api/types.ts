@@ -33,6 +33,7 @@ export interface Book {
   author: string
   rating: number | null
   ratingMotivation: string | null
+  summary: string | null
   createdAt: string
 }
 

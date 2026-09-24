@@ -56,7 +56,8 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
     /// <returns>Modellens svarstext.</returns>
     /// <exception cref="KeyNotFoundException">Kastas när samtalet inte finns.</exception>
     /// <exception cref="InvalidOperationException">Kastas när Azure OpenAI inte är konfigurerat.</exception>
-    public async Task<string> SendMessageAsync(Guid conversationId, string content, CancellationToken cancellationToken = default)
+    public async Task<string> SendMessageAsync(Guid conversationId, string content,
+        CancellationToken cancellationToken = default)
     {
         var conversation = await _db.Conversations
                                .Include(c => c.Book)
@@ -74,9 +75,10 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
         await _db.SaveChangesAsync(cancellationToken);
 
         var prompt = BuildPrompt(conversation);
-        ClientResult<ChatCompletion> result = await GetChatClient().CompleteChatAsync(prompt, cancellationToken: cancellationToken);
-        var reply = result.Value.Content.Count > 0 
-            ? result.Value.Content[0].Text 
+        ClientResult<ChatCompletion> result =
+            await GetChatClient().CompleteChatAsync(prompt, cancellationToken: cancellationToken);
+        var reply = result.Value.Content.Count > 0
+            ? result.Value.Content[0].Text
             : string.Empty;
 
         _db.Messages.Add(new Message
@@ -98,12 +100,18 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
     public async Task<string> GetBookSummaryAsync(Guid bookId, CancellationToken cancellationToken = default)
     {
         var book = await _db.Books
-                           .Include(b => b.Notes)
-                           .FirstOrDefaultAsync(b => b.Id == bookId, cancellationToken)
-                       ?? throw new KeyNotFoundException($"Boken {bookId} hittades inte.");
+                       .Include(b => b.Notes)
+                       .FirstOrDefaultAsync(b => b.Id == bookId, cancellationToken)
+                   ?? throw new KeyNotFoundException($"Boken {bookId} hittades inte.");
 
         var builder = new StringBuilder();
-        builder.AppendLine("Sammanfatta kort vad boken handlar om på svenska (5-8 meningar, utan stora spoilers).");
+        builder.AppendLine(
+            $"Sammanfatta boken \"{book.Title}\" av \"{book.Author}\" på max 800 tecken, utan stora spoilers.");
+        builder.AppendLine("Sammanfattningen ska innehålla två sektioner: Om boken och Teman.");
+        builder.AppendLine("Dessa ska inte ha en varsin rubrik, men ska delas in i två tydliga sektioner med radbrytning mellan.");
+        builder.AppendLine("Varje sektion ska max vara 4 meningar långa.");
+        builder.AppendLine("Fokusera på bokens huvudtema, karaktärer och stämning, och undvik att avslöja viktiga vändpunkter.");
+        builder.AppendLine("Använd en avslappnad, lättillgänglig ton; som om du berättar för en vän vad boken handlar om.");
         builder.AppendLine($"Bok: \"{book.Title}\" av {book.Author}.");
         foreach (var note in book.Notes.OrderBy(n => n.CreatedAt).TakeLast(10))
         {
@@ -114,12 +122,14 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
 
         List<ChatMessage> prompt =
         [
-            new SystemChatMessage("Du är en hjälpsam bokkunnig assistent som svarar på svenska."),
+            new SystemChatMessage(
+                "Du är en bokälskare som skriver korta, engagerande sammanfattningar på naturlig svenska."),
             new UserChatMessage(builder.ToString())
         ];
-        ClientResult<ChatCompletion> result = await GetChatClient().CompleteChatAsync(prompt, cancellationToken: cancellationToken);
-        var summary = result.Value.Content.Count > 0 
-            ? result.Value.Content[0].Text 
+        ClientResult<ChatCompletion> result =
+            await GetChatClient().CompleteChatAsync(prompt, cancellationToken: cancellationToken);
+        var summary = result.Value.Content.Count > 0
+            ? result.Value.Content[0].Text
             : string.Empty;
         book.Summary = summary;
         await _db.SaveChangesAsync(cancellationToken);
@@ -181,15 +191,23 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
     private static string BuildSystemPrompt(Conversation conversation)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("Du är en nyfiken och välinläst bokcirkelsledare som pratar svenska.");
-        builder.AppendLine("Ställ öppna frågor, koppla till teman och karaktärer, och föreslå nya infallsvinklar.");
-        builder.AppendLine("Undvik spoilers för delar av boken som samtalet ännu inte handlat om, om inte användaren ber om det.");
-
-        if (conversation.Book is null) 
+        builder.AppendLine("Du är en nyfiken, avslappnad, välinläst och reflekterande bokcirkelsledare som pratar svenska.");
+        builder.AppendLine("Du fungerar som ett bollplank för läsaren.");
+        builder.AppendLine("Ditt mål är att hjälpa läsaren att utforska böcker på djupet genom att ställa öppna frågor, lyfta fram teman och koppla bokens värld till verkligheten.");
+        builder.AppendLine("Du är ingen ledare, utan en jämställd samtalspartner.");
+        builder.AppendLine("Riktlinjer:");
+        builder.AppendLine("- Var **nyfiken och temafokuserad**: Utforska underliggande teman, symbolik och karaktärers motiv.");
+        builder.AppendLine("- Var **personlig och avslappnad**: Använd en naturlig, vardaglig ton och uttryck subtila åsikter för att inspirera.");
+        builder.AppendLine("- **Koppla till verkligheten**: Visa hur böckens teman kan relateras till vardagliga upplevelser eller samhällsfrågor.");
+        builder.AppendLine("- **Undvik spoilers**: Avslöj inte framtida händelser, om inte läsaren explicit ber om det.");
+        builder.AppendLine("- **Var ett bollplank**: Ställ frågor som uppmuntrar läsaren att reflektera och utforska sina egna tankar.");
+        builder.AppendLine("Tänk på att detta är ett samtal. Ge inte användaren för många frågor i samma svar.");
+        
+        if (conversation.Book is null)
             return builder.ToString();
         builder.AppendLine($"Aktuell bok: \"{conversation.Book.Title}\" av {conversation.Book.Author}.");
 
-        if (conversation.Book.Notes is not { Count: > 0 }) 
+        if (conversation.Book.Notes is not { Count: > 0 })
             return builder.ToString();
         builder.AppendLine("Sparade anteckningar om boken:");
         foreach (var note in conversation.Book.Notes.OrderBy(n => n.CreatedAt).TakeLast(10))

@@ -1,27 +1,38 @@
 import { useEffect, useState } from 'react'
 import { getBook, getBookSummary, listConversations, listNotes } from '../../api/bokcirkelnApi'
 
-/** Översikt i bok-kontext utan valt samtal: summary + antalsrad. */
+/** Översikt i bok-kontext utan valt samtal: lagrad summary + antalsrad. */
 export function BookOverview({ bookId }: { bookId: string }) {
   const [summary, setSummary] = useState<string | null>(null)
   const [counts, setCounts] = useState<string | null>(null)
 
   useEffect(() => {
+    // Guard mot race: byts bok mitt i hämtningen ignoreras det sena svaret.
+    let cancelled = false
     async function load() {
       try {
-        const [text, convs, notes, book] = await Promise.all([
-          getBookSummary(bookId),
+        const [convs, notes, book] = await Promise.all([
           listConversations(bookId),
           listNotes(bookId),
           getBook(bookId),
         ])
-        setSummary(text)
+        if (cancelled) return
         setCounts(`${convs.length} samtal · ${notes.length} anteckningar · betyg ${book.rating ?? '–'}`)
+        // Lagrad text först — backfill via modellen bara för gamla böcker.
+        if (book.summary) {
+          setSummary(book.summary)
+          return
+        }
+        const text = await getBookSummary(bookId)
+        if (!cancelled) setSummary(text)
       } catch {
-        setSummary(null)
+        if (!cancelled) setSummary(null)
       }
     }
     void load()
+    return () => {
+      cancelled = true
+    }
   }, [bookId])
 
   return (

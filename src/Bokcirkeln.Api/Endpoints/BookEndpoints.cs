@@ -31,12 +31,29 @@ public static class BookEndpoints
         return group;
     }
 
-    /// <summary>Skapar en ny bok.</summary>
-    private static async Task<Created<BookResponse>> Create(CreateBookRequest request, AppDbContext db, CancellationToken ct)
+    /// <summary>Skapar en ny bok. Sammanfattningen genereras i bakgrunden.</summary>
+    private static async Task<Created<BookResponse>> Create(
+        CreateBookRequest request, AppDbContext db, IServiceScopeFactory scopes, ILoggerFactory loggers, CancellationToken ct)
     {
         var book = new Book { Title = request.Title, Author = request.Author };
         db.Books.Add(book);
         await db.SaveChangesAsync(ct);
+
+        // Svarar direkt — sammanfattningen genereras tyst i bakgrunden (eget scope, loggar vid fel).
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopes.CreateScope();
+                var chat = scope.ServiceProvider.GetRequiredService<ChatService>();
+                await chat.GetBookSummaryAsync(book.Id);
+            }
+            catch (Exception ex)
+            {
+                loggers.CreateLogger("BookEndpoints").LogWarning(ex, "Kunde inte generera sammanfattning för bok {BookId}.", book.Id);
+            }
+        });
+
         return TypedResults.Created($"/api/books/{book.Id}", Map(book));
     }
 

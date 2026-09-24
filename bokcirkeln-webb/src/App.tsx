@@ -47,33 +47,43 @@ export default function App() {
 
   // Statusraden: hämta titlar för valda id:n.
   useEffect(() => {
+    let cancelled = false
     async function load() {
       if (!selectedBookId) {
         setStatusBook(null)
         return
       }
       try {
-        setStatusBook((await getBook(selectedBookId)).title)
+        const title = (await getBook(selectedBookId)).title
+        if (!cancelled) setStatusBook(title)
       } catch {
-        setStatusBook(null)
+        if (!cancelled) setStatusBook(null)
       }
     }
     void load()
+    return () => {
+      cancelled = true
+    }
   }, [selectedBookId, bookRefresh])
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
       if (!conversationId) {
         setStatusConv(null)
         return
       }
       try {
-        setStatusConv((await getConversation(conversationId)).title)
+        const title = (await getConversation(conversationId)).title
+        if (!cancelled) setStatusConv(title)
       } catch {
-        setStatusConv(null)
+        if (!cancelled) setStatusConv(null)
       }
     }
     void load()
+    return () => {
+      cancelled = true
+    }
   }, [conversationId, convRefresh])
 
   // Aktuell nivå styr vilka kommandon som syns.
