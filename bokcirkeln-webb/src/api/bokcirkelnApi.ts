@@ -86,9 +86,34 @@ export async function sendMessageStream(
     body: JSON.stringify({ content }),
     signal,
   })
-  if (!res.ok) 
+  await consumeStream(res, conversationId, onToken)
+}
+
+/**
+ * Regenererar det senaste svaret utan nytt användarmeddelande.
+ * Samma SSE-protokoll och felhantering som sendMessageStream.
+ */
+export async function sendRegenerateStream(
+  conversationId: string,
+  onToken: (token: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages/regenerate`, {
+    method: 'POST',
+    signal,
+  })
+  await consumeStream(res, conversationId, onToken)
+}
+
+/** Läser en SSE-svarström till [DONE] och anropar onToken per token-chunk. */
+async function consumeStream(
+  res: Response,
+  conversationId: string,
+  onToken: (token: string) => void,
+): Promise<void> {
+  if (!res.ok)
     throw new Error(`API ${res.status} på /api/conversations/${conversationId}/messages/stream`)
-  if (!res.body) 
+  if (!res.body)
     throw new Error('Strömning stöds inte i webbläsaren.')
 
   const reader = res.body.getReader()
