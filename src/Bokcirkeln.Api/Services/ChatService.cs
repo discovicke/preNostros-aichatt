@@ -157,6 +157,68 @@ public class ChatService(IOptions<ChatServiceOptions> options, AppDbContext db)
         return reply;
     }
 
+    /// <summary>
+    /// Regenererar det senaste svaret i ett samtal utan att lägga till något nytt användarmeddelande.
+    /// </summary>
+    /// <remarks>
+    /// Om sista meddelandet är ett (ev. avbrutet/partiellt) assistentsvar raderas det först,
+    /// så det inte förorenar prompten för det nya svaret. Historien i övrigt lämnas orörd.
+    /// </remarks>
+    /// <param name="conversationId">Id för samtalet.</param>
+    /// <param name="onToken">Anropas med varje textchunk från modellen.</param>
+    /// <param name="cancellationToken">CT</param>
+    /// <returns>Hela det nya svaret.</returns>
+    /// <exception cref="KeyNotFoundException">Kastas när samtalet inte finns.</exception>
+    public async Task<string> RegenerateLastAsync(Guid conversationId,
+        Func<string, Task> onToken, CancellationToken cancellationToken = default)
+    {
+        var conversation = await LoadConversationAsync(conversationId, cancellationToken);
+
+        var last = conversation.Messages.OrderBy(m => m.CreatedAt).LastOrDefault();
+        if (last is { Role: "assistant" })
+        {
+            _db.Messages.Remove(last);
+            await _db.SaveChangesAsync(cancellationToken);
+            conversation.Messages.Remove(last);
+        }
+
+        var prompt = BuildPrompt(conversation);
+        var replyBuilder = new StringBuilder();
+        var cancelled = false;
+        try
+        {
+            AsyncCollectionResult<StreamingChatCompletionUpdate> stream =
+                GetChatClient().CompleteChatStreamingAsync(prompt, cancellationToken: cancellationToken);
+            await foreach (var update in stream.WithCancellation(cancellationToken))
+            {
+                foreach (var part in update.ContentUpdate)
+                {
+                    if (string.IsNullOrEmpty(part.Text))
+                        continue;
+                    replyBuilder.Append(part.Text);
+                    await onToken(part.Text);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            cancelled = true;
+        }
+
+        var reply = replyBuilder.ToString();
+        if (reply.Length <= 0) 
+            return reply;
+        _db.Messages.Add(new Message
+        {
+            ConversationId = conversation.Id,
+            Role = "assistant",
+            Content = reply
+        });
+        await _db.SaveChangesAsync(cancelled ? CancellationToken.None : cancellationToken);
+
+        return reply;
+    }
+
     /// <summary>Läser in ett samtal med bok, anteckningar och meddelanden.</summary>
     /// <param name="conversationId">Id för samtalet.</param>
     /// <param name="cancellationToken">CT</param>

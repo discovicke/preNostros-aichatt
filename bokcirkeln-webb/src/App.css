@@ -389,6 +389,12 @@ h3.md-heading {
   background: var(--hl);
 }
 
+/* Regenerera-knappen efter sista AI-svaret - egen rad, vänsterställd. */
+.command-item.regen {
+  align-self: flex-start;
+  font-size: 15px;
+}
+
 /** Samma meny-känsla fast statisk — används av SelectList i modaler. */
 .select-list {
   background: var(--surface);
@@ -602,6 +608,38 @@ h3.md-heading {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+}
+
+/* Trädsidebar: böcker → samtal + anteckningar. Dold på små skärmar. */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 16px 12px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-title {
+  color: var(--dim);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.sidebar-children {
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 700px) {
+  .sidebar {
+    display: none;
+  }
 }
 
 .terminal-button,

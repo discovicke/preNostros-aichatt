@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
-import { createConversation, getBook, getConversation, sendMessageStream } from './api/bokcirkelnApi'
+import { createConversation, getBook, getConversation, sendMessageStream, sendRegenerateStream } from './api/bokcirkelnApi'
 import type { ChatMessage as ChatMessageType } from './api/types'
 import { BookCreateModal } from './features/books/BookCreateModal'
 import { BookModal } from './features/books/BookModal'
@@ -20,6 +20,7 @@ import { NoteDeleteModal } from './features/notes/NoteDeleteModal'
 import { NoteListModal } from './features/notes/NoteListModal'
 import { RatingModal } from './features/books/RatingModal'
 import { RenameModal } from './components/RenameModal'
+import { Sidebar } from './components/Sidebar'
 import { StartPage } from './components/StartPage'
 import './App.css'
 
@@ -35,6 +36,8 @@ export default function App() {
   const [sending, setSending] = useState(false)
   // Id för bubblan som strömmas just nu — den renderas rått tills svaret är klart.
   const [streamingId, setStreamingId] = useState<string | null>(null)
+  // Bubblor vars ström avbröts med Esc — får en dimmad suffix i efterhand.
+  const [abortedIds, setAbortedIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [command, setCommand] = useState<CommandName | null>(null)
   const [overlay, setOverlay] = useState<null | 'book-create' | 'conversation-create' | 'note-create'>(null)
@@ -45,6 +48,8 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null)
   // Pågående svarström - avbryts vid navigation så inga tokens läcker in i fel vy.
   const streamController = useRef<AbortController | null>(null)
+  // Antal tokens som hunnit fram i pågående ström - avgör abortstädning.
+  const streamedLength = useRef(0)
 
   // Håll senaste raden synlig.
   useEffect(() => {
@@ -61,9 +66,11 @@ export default function App() {
       }
       try {
         const title = (await getBook(selectedBookId)).title
-        if (!cancelled) setStatusBook(title)
+        if (!cancelled) 
+          setStatusBook(title)
       } catch {
-        if (!cancelled) setStatusBook(null)
+        if (!cancelled) 
+          setStatusBook(null)
       }
     }
     void load()
@@ -81,9 +88,11 @@ export default function App() {
       }
       try {
         const title = (await getConversation(conversationId)).title
-        if (!cancelled) setStatusConv(title)
+        if (!cancelled) 
+          setStatusConv(title)
       } catch {
-        if (!cancelled) setStatusConv(null)
+        if (!cancelled) 
+          setStatusConv(null)
       }
     }
     void load()
@@ -91,6 +100,24 @@ export default function App() {
       cancelled = true
     }
   }, [conversationId, convRefresh])
+
+  // Esc under pågående strömning avbryter svaret (ingen modal öppen,
+  // /-menyn är ändå stängd under sändning så ingen krock med dess Esc).
+  useEffect(() => {
+    function onKey(e: globalThis.KeyboardEvent) {
+      if (e.key !== 'Escape') 
+        return
+      if (!streamController.current) 
+        return
+      const modalOpen = document.querySelector('.modal-overlay')
+      if (modalOpen) 
+        return
+      e.preventDefault()
+      streamController.current.abort()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   // Aktuell nivå styr vilka kommandon som syns.
   const level: Level = conversationId 
@@ -126,6 +153,7 @@ export default function App() {
     streamController.current?.abort()
     streamController.current = null
     setStreamingId(null)
+    setAbortedIds([])
     setSelectedBookId(id)
     setConversationId(null)
     setMessages([])
@@ -136,6 +164,7 @@ export default function App() {
     streamController.current?.abort()
     streamController.current = null
     setStreamingId(null)
+    setAbortedIds([])
     setInput('')
     setError(null)
     setSelectedBookId(null)
@@ -157,7 +186,8 @@ export default function App() {
 
   /** Pilar navigerar menyn, Esc tömmer input. Enter skickas av formuläret. */
   function handleInputKey(e: KeyboardEvent<HTMLInputElement>) {
-    if (!showMenu || matches.length === 0) return
+    if (!showMenu || matches.length === 0) 
+      return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setMenuIndex((index) => (index + 1) % matches.length)
@@ -193,7 +223,8 @@ export default function App() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const text = input.trim()
-    if (!text || sending) return
+    if (!text || sending) 
+      return
     if (text.startsWith('/')) {
       runSlashCommand(text.slice(1))
       return
@@ -212,7 +243,9 @@ export default function App() {
       // Tom assistentrad direkt — tokens fylls på allt eftersom de anländer.
       setMessages((previousMessages) => [...previousMessages, placeholder])
       setStreamingId(placeholder.id)
+      streamedLength.current = 0
       await sendMessageStream(id, text, (token) => {
+        streamedLength.current += token.length
         setMessages((previousMessages) =>
           previousMessages.map((message) =>
             message.id === placeholder.id
@@ -220,9 +253,19 @@ export default function App() {
               : message))
       }, controller.signal)
     } catch (error) {
-      // Avbruten ström (navigation) - det partiella svaret ligger redan kvar.
-      if (error instanceof DOMException && error.name === 'AbortError') 
+      // Avbruten ström (Esc/navigation) - tom bubbla städas, partiell märks.
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        if (streamedLength.current === 0) {
+          const id = streamingId
+          if (id) 
+            setMessages((previousMessages) => previousMessages.filter((message) => message.id !== id))
+        } else {
+          const id = streamingId
+          if (id) 
+            setAbortedIds((ids) => (ids.includes(id) ? ids : [...ids, id]))
+        }
         return
+      }
       setError('Något gick fel - försök igen.')
     } finally {
       setStreamingId(null)
@@ -230,6 +273,56 @@ export default function App() {
       setSending(false)
     }
   }
+
+  /** Regenererar senaste AI-svaret utan ny användarrad (backend raderar det gamla). */
+  async function regenerate() {
+    if (sending || !conversationId) 
+      return
+    const last = [...messages].reverse().find((message) => message.role === 'assistant')
+    if (!last) 
+      return
+    setError(null)
+    setSending(true)
+    setMessages((previousMessages) => previousMessages.filter((message) => message.id !== last.id))
+    setAbortedIds((ids) => ids.filter((id) => id !== last.id))
+    const controller = new AbortController()
+    streamController.current = controller
+    const placeholder = localMessage('assistant', '')
+    setMessages((previousMessages) => [...previousMessages, placeholder])
+    setStreamingId(placeholder.id)
+    streamedLength.current = 0
+    try {
+      await sendRegenerateStream(conversationId, (token) => {
+        streamedLength.current += token.length
+        setMessages((previousMessages) =>
+          previousMessages.map((message) =>
+            message.id === placeholder.id
+              ? { ...message, content: message.content + token }
+              : message))
+      }, controller.signal)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        if (streamedLength.current === 0) {
+          setMessages((previousMessages) => previousMessages.filter((message) => message.id !== placeholder.id))
+        } else {
+          setAbortedIds((ids) => (ids.includes(placeholder.id) 
+              ? ids 
+              : [...ids, placeholder.id]))
+        }
+        return
+      }
+      setMessages((previousMessages) => previousMessages.filter((message) => message.id !== placeholder.id))
+      setError('Något gick fel - försök igen.')
+    } finally {
+      setStreamingId(null)
+      streamController.current = null
+      setSending(false)
+    }
+  }
+
+  /** Senaste AI-bubblan får ↻-knapp när inget strömmas. */
+  const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
+  const showRegenerate = !sending && !streamingId && lastAssistant !== undefined && conversationId !== null
 
   return (
     <div className="terminal">
@@ -247,6 +340,18 @@ export default function App() {
       </header>
 
       <div className="content">
+        <Sidebar
+          selectedBookId={selectedBookId}
+          conversationId={conversationId}
+          bookRefresh={bookRefresh}
+          convRefresh={convRefresh}
+          notesRefresh={notesRefresh}
+          disabled={sending}
+          onSelectBook={selectBook}
+          onSelectConversation={(id) => void selectConversation(id)}
+          onCreateBook={() => setOverlay('book-create')}
+          onShowNotes={() => openCommand('anteckning')}
+        />
         <div className="main-col">
           <ContextBanner bookTitle={statusBook} convTitle={statusConv} />
           <main className="terminal-body">
@@ -263,8 +368,13 @@ export default function App() {
           />
         )}
             {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} streaming={message.id === streamingId} />
+              <ChatMessage key={message.id} message={message} streaming={message.id === streamingId} aborted={abortedIds.includes(message.id)} />
             ))}
+            {showRegenerate && (
+              <button type="button" className="command-item regen" onClick={() => void regenerate()} title="Generera om senaste svaret">
+                <span className="cmd">↻ regenerera</span>
+              </button>
+            )}
             {sending && !streamingId && <div className="thinking">preNostros skriver…</div>}
           </>
         )}
@@ -290,8 +400,12 @@ export default function App() {
               setMenuIndex(0)
             }}
             onKeyDown={handleInputKey}
-          placeholder="Skriv till preNostros…"
-          title="Vanlig text chattar - börja med / för kommandon (/help visar alla)"
+          placeholder={conversationId 
+              ? 'Skriv till preNostros…' 
+              : selectedBookId 
+                  ? `Skriv för att starta ett samtal om ${statusBook ?? 'boken'}…` 
+                  : 'Välj en bok med /bok för att börja…'}
+          title="Vanlig text chattar - börja med / för kommandon (/help visar alla). Esc avbryter pågående svar."
           disabled={sending}
           autoFocus
         />

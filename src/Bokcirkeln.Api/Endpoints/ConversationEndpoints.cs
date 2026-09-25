@@ -26,6 +26,7 @@ public static class ConversationEndpoints
         group.MapDelete("/{id:guid}", DeleteConversation);
         group.MapPost("/{id:guid}/messages", SendMessage).AddEndpointFilter<ValidationFilter<SendMessageRequest>>();
         group.MapPost("/{id:guid}/messages/stream", StreamMessage).AddEndpointFilter<ValidationFilter<SendMessageRequest>>();
+        group.MapPost("/{id:guid}/messages/regenerate", RegenerateMessage);
 
         return group;
     }
@@ -132,6 +133,67 @@ public static class ConversationEndpoints
         try
         {
             await chat.StreamMessageAsync(id, request.Content, async token =>
+            {
+                if (!streamed)
+                {
+                    streamed = true;
+                    response.StatusCode = StatusCodes.Status200OK;
+                    response.ContentType = "text/event-stream";
+                    response.Headers.CacheControl = "no-cache";
+                    response.Headers["X-Accel-Buffering"] = "no";
+                }
+                await response.WriteAsync(
+                    $"data: {JsonSerializer.Serialize(new StreamTokenEvent(token), jsonSettings)}\n\n",
+                    cancellationToken);
+                await response.Body.FlushAsync(cancellationToken);
+            }, cancellationToken);
+
+            if (!streamed)
+            {
+                response.StatusCode = StatusCodes.Status200OK;
+                response.ContentType = "text/event-stream";
+                response.Headers.CacheControl = "no-cache";
+            }
+            await response.WriteAsync("data: [DONE]\n\n", cancellationToken);
+            await response.Body.FlushAsync(cancellationToken);
+        }
+        catch (KeyNotFoundException) when (!streamed)
+        {
+            response.StatusCode = StatusCodes.Status404NotFound;
+        }
+        catch (ClientResultException ex) when (!streamed)
+        {
+            response.StatusCode = StatusCodes.Status502BadGateway;
+            await response.WriteAsync(
+                $"AI-tjänsten svarade {ex.Status}: {ex.Message}", CancellationToken.None);
+        }
+        catch (ClientResultException ex)
+        {
+            await response.WriteAsync(
+                $"event: error\ndata: {JsonSerializer.Serialize(new StreamErrorEvent($"AI-tjänsten svarade {ex.Status}: {ex.Message}"), jsonSettings)}\n\n",
+                CancellationToken.None);
+            await response.Body.FlushAsync(CancellationToken.None);
+        }
+        catch (OperationCanceledException)
+        {
+            // Klienten kopplade bort - partiella svaret redan sparat. Tyst avslut.
+        }
+    }
+
+    /// <summary>
+    /// Regenererar det senaste svaret utan nytt användarmeddelande (SSE, samma protokoll som strömmen).
+    /// </summary>
+    private static async Task RegenerateMessage(
+        Guid id, ChatService chat,
+        IOptions<JsonOptions> jsonOptions, HttpContext httpContext)
+    {
+        var cancellationToken = httpContext.RequestAborted;
+        var response = httpContext.Response;
+        var jsonSettings = jsonOptions.Value.SerializerOptions;
+        var streamed = false;
+        try
+        {
+            await chat.RegenerateLastAsync(id, async token =>
             {
                 if (!streamed)
                 {
