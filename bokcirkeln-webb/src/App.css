@@ -1,20 +1,21 @@
 :root {
-  --bg: #0a0a0a;
-  --surface: #141414;
-  --border: #262626;
-  --text: #eeeeee;
-  /* Mjuk brödtextgrå — nästan-vitt mot kolsvart "blommar" (halation) i långa sjok. */
-  --prose: #d2d2d2;
-  --dim: #a3a3a3;
-  --blue: #5c9cf5;
-  --green: #7fd88f;
-  --orange: #f5a742;
-  --purple: #9d7cd8;
-  --cyan: #56b6c2;
-  --yellow: #e5c07b;
-  --red: #e06c75;
-  --peach: #fab283;
-  --hl: #262626;
+  /* Gruvbox dark medium: varm bas + dämpade neutral-accenter. */
+  --bg: #1d2021;
+  --surface: #282828;
+  --border: #3c3836;
+  --text: #fbf1c7;
+  /* Varmvit brödtext — kritvitt mot mörkt "blommar" (halation) i långa sjok. */
+  --prose: #ebdbb2;
+  --dim: #a89984;
+  --blue: #458588;
+  --green: #8ec07c;
+  --orange: #d65d0e;
+  --purple: #b16286;
+  --cyan: #689d6a;
+  --yellow: #d79921;
+  --red: #cc241d;
+  --peach: #fe8019;
+  --hl: #282828;
 }
 
 .terminal {
@@ -36,8 +37,8 @@
   border-bottom: 1px solid var(--border);
 }
 
-.prompt {
-  color: var(--peach);
+.terminal-input .prompt {
+  color: var(--cyan);
 }
 
 .terminal-title {
@@ -47,7 +48,7 @@
 
 .terminal-button {
   font: inherit;
-  color: var(--orange);
+  color: var(--cyan);
   background: transparent;
   border: none;
   border-radius: 0;
@@ -101,9 +102,9 @@
   min-width: 0;
 }
 
-/* Egen rad: terminal-echo - nedtonad text efter peach-prompt. */
+/* Egen rad: terminal-echo - cyan markör = samma färg som kommandon/inputpil. */
 .line.mine .who {
-  color: var(--peach);
+  color: var(--cyan);
 }
 
 .line.mine .text {
@@ -152,7 +153,8 @@
 }
 
 .md-strong {
-  color: #ffffff;
+  color: var(--peach);
+  font-weight: 700;
 }
 
 .md-code {
@@ -196,15 +198,12 @@
 .md-quote {
   margin: 0 0 12px;
   padding-left: 12px;
-  border-left: 2px solid var(--green);
-  color: var(--cyan);
+  border-left: 2px solid var(--cyan);
+  color: var(--prose);
+  font-style: italic;
 }
 
-/* AI:ns fråga till läsaren (??...??) — egen färg som bryter texten. */
-.md-question {
-  color: var(--cyan);
-  font-weight: 700;
-}
+/* AI:ns avslutande fråga markeras inline med **fet** i prosa - ingen egen blockstil. */
 
 h1.md-heading {
   font-size: 20px;
@@ -228,7 +227,7 @@ h3.md-heading {
 }
 
 .md-link {
-  color: var(--orange);
+  color: var(--cyan);
 }
 
 .thinking {
@@ -274,7 +273,7 @@ h3.md-heading {
 
 .terminal-input button {
   font: inherit;
-  color: var(--orange);
+  color: var(--cyan);
   background: transparent;
   border: none;
   border-radius: 0;
@@ -327,12 +326,12 @@ h3.md-heading {
 
 .modal input:focus,
 .modal select:focus {
-  border-color: var(--orange);
+  border-color: var(--cyan);
 }
 
 .stack > button {
   font: inherit;
-  color: var(--orange);
+  color: var(--cyan);
   background: transparent;
   border: none;
   border-radius: 0;
@@ -401,12 +400,12 @@ h3.md-heading {
 }
 
 .command-item .cmd {
-  color: var(--orange);
+  color: var(--cyan);
 }
 
 /** Kommando i löptext — samma färg som i menyn. */
 .cmd {
-  color: var(--orange);
+  color: var(--cyan);
 }
 
 .command-hint {
@@ -445,7 +444,7 @@ h3.md-heading {
 }
 
 .help-row .cmd {
-  color: var(--orange);
+  color: var(--cyan);
   flex-shrink: 0;
 }
 
@@ -465,7 +464,7 @@ h3.md-heading {
 }
 
 .box-title {
-  color: var(--peach);
+  color: var(--cyan);
   font-size: 13px;
 }
 
@@ -518,7 +517,7 @@ h3.md-heading {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  color: var(--peach);
+  color: var(--cyan);
 }
 
 .modal:focus {
@@ -530,7 +529,7 @@ h3.md-heading {
 }
 
 :focus-visible {
-  outline: 1px solid var(--orange);
+  outline: 1px solid var(--cyan);
   outline-offset: 2px;
 }
 
@@ -560,12 +559,12 @@ h3.md-heading {
 
 .modal input:focus,
 .modal select:focus {
-  border-color: var(--orange);
+  border-color: var(--cyan);
 }
 
 .modal button[type='submit'] {
   font: inherit;
-  color: var(--orange);
+  color: var(--cyan);
   background: transparent;
   border: none;
   border-radius: 0;
@@ -614,15 +613,26 @@ h3.md-heading {
 }
 
 .tone-book {
-  color: var(--purple);
+  color: var(--cyan);
 }
 
 .tone-conv {
-  color: var(--cyan);
+  color: var(--orange);
 }
 
 .rating {
   color: var(--yellow);
+  font-weight: 700;
+}
+
+/* Översiktsstatistik (BookOverview): siffror bär vikten, etiketter nedtonade. */
+.counts {
+  color: var(--dim);
+}
+
+.counts strong {
+  color: var(--text);
+  font-weight: 700;
 }
 
 /* Boksammanfattningen läses som brödtext — samma mjuka grå som AI-svar. */

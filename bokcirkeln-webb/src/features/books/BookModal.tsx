@@ -19,7 +19,7 @@ export function BookModal({
   const [books, setBooks] = useState<Book[]>([])
   const [error, setError] = useState<string | null>(null)
   const nav = useListNav(books.length + 1)
-  const rows = [{ id: '__create__', label: '+ Skapa ny bok' }, ...books.map((book) => ({ id: book.id, label: `§ ${book.title}`, hint: `av ${book.author}` }))]
+  const rows = [{ id: '__create__', label: '+ Skapa ny bok' }, ...books.map((book) => ({ id: book.id, label: `§ ${book.title}`, hint: `av ${book.author}`, badge: book.rating ? `★${book.rating}/5` : undefined }))]
   const marked = rows[nav.index]
 
   useEffect(() => {

@@ -18,7 +18,7 @@ export function BookOverview({
   onSelectConversation: (id: string) => void
 }) {
   const [summary, setSummary] = useState<string | null>(null)
-  const [counts, setCounts] = useState<string | null>(null)
+  const [stats, setStats] = useState<{ conversations: number; notes: number; rating: number | null } | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [notes, setNotes] = useState<Note[]>([])
 
@@ -33,7 +33,7 @@ export function BookOverview({
           getBook(bookId),
         ])
         if (cancelled) return
-        setCounts(`${convs.length} samtal | ${fetchedNotes.length} anteckningar | betyg ${book.rating ?? '–'}`)
+        setStats({ conversations: convs.length, notes: fetchedNotes.length, rating: book.rating })
         setConversations(convs)
         setNotes(fetchedNotes)
         // Lagrad text först — backfill via modellen bara för gamla böcker.
@@ -62,7 +62,12 @@ export function BookOverview({
         {summary 
             ? <div className="summary"><Markdown content={summary} /></div> 
             : <div className="dim">Sammanfattar…</div>}
-        {counts && <div className="dim">{counts}</div>}
+        {stats && (
+          <div className="counts">
+            <strong>{stats.conversations}</strong> samtal | <strong>{stats.notes}</strong> anteckningar |{' '}
+            {stats.rating ? <span className="rating">★{stats.rating}/5</span> : <span className="dim">utan betyg</span>}
+          </div>
+        )}
       </div>
       <div className="term-box">
         <div className="box-title">$ samtal</div>

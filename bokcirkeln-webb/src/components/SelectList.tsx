@@ -5,6 +5,7 @@ export interface SelectOption {
   id: string
   label: string
   hint?: string
+  badge?: string
 }
 
 /**
@@ -49,7 +50,11 @@ export function SelectList({
           onClick={() => onPick(option.id)}
         >
           <span
-            className={tone === 'book' ? 'tone-book' : tone === 'conv' ? 'tone-conv' : undefined}
+            className={tone === 'book' 
+                ? 'tone-book' 
+                : tone === 'conv' 
+                    ? 'tone-conv' 
+                    : undefined}
           >
             {option.id === selectedId 
                 ? '> ' 
@@ -57,6 +62,7 @@ export function SelectList({
             {option.label}
           </span>
           {option.hint && <span className="dim">{option.hint}</span>}
+          {option.badge && <span className="rating">{option.badge}</span>}
         </button>
       ))}
     </div>
