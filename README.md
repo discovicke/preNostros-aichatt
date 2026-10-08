@@ -1,8 +1,18 @@
 # preNostros - bokcirkelchatt med generativ AI
 
-Terminalchatt där du diskuterar böcker med en AI-samtalspartner: välj en bok,
-starta ett samtal genom att bara skriva, spara citat/tankar/analyser/betyg som
-anteckningar.
+> Skolprojekt i utbildningssyfte. Chatt där du diskuterar böcker med en AI-samtalspartner och sparar citat, tankar, analyser och betyg som anteckningar.
+
+![.NET](https://img.shields.io/badge/.NET-10-512BD4)
+![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-frontend-646CFF?logo=vite&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-EF_Core-003B57)
+![LLM Integration](https://img.shields.io/badge/LLM_Integration-Azure_OpenAI-8E75B2)
+![Status](https://img.shields.io/badge/Status-Skolprojekt-yellow)
+
+## Vad är detta
+
+Skolprojekt utvecklat i utbildningssyfte för att öva generativ AI och fullstack i praktiken. Backend är ett Minimal API i `src/Bokcirkeln.Api` med EF Core och SQLite, frontend i `bokcirkeln-webb` är en React-terminal med Vite. `ChatService` bygger systemprompt av roll plus bok plus anteckningar plus historik och strömmar svar som SSE från Azure OpenAI.
 
 ### Startsida
 <img width="1832" height="1279" alt="image" src="https://github.com/user-attachments/assets/81f412d2-0960-4e32-9a3f-84fe453a342f" />
