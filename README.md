@@ -12,7 +12,7 @@
 
 ## Vad är detta
 
-Skolprojekt utvecklat i utbildningssyfte för att öva generativ AI och fullstack i praktiken. Backend är ett Minimal API i `src/Bokcirkeln.Api` med EF Core och SQLite, frontend i `bokcirkeln-webb` är en React-terminal med Vite. `ChatService` bygger systemprompt av roll plus bok plus anteckningar plus historik och strömmar svar som SSE från Azure OpenAI.
+Skolprojekt utvecklat i utbildningssyfte för att öva generativ AI och fullstack i praktiken. Projektet är utvecklat som en tänkt extension till [Nostos](https://github.com/Christian-Gennari/Nostos) för att som MVP bevisa att det är möjligt att integrera LLM mot produkten. Backend är ett Minimal API i `src/Bokcirkeln.Api` med EF Core och SQLite, frontend i `bokcirkeln-webb` är en React-terminal med Vite. `ChatService` bygger systemprompt av roll plus bok plus anteckningar plus historik och strömmar svar som SSE från Azure OpenAI.
 
 ### Startsida
 <img width="1832" height="1279" alt="image" src="https://github.com/user-attachments/assets/81f412d2-0960-4e32-9a3f-84fe453a342f" />
